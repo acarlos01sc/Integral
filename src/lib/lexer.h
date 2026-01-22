@@ -10,6 +10,8 @@ class Lexer {
   public:
     explicit Lexer(const std::string &input);
 
+    ~Lexer();
+    
     Token next();
     std::vector<Token> tokenize();
 
