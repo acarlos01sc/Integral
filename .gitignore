@@ -48,3 +48,6 @@ build
 
 # scons objects
 .sconsign.dblite
+
+# vscode
+.vscode
