@@ -39,3 +39,12 @@
 
 # debug information files
 *.dwo
+
+# python virtual environment
+.venv
+
+# compiled objects
+build
+
+# scons objects
+.sconsign.dblite
