@@ -1,22 +1,25 @@
 #include "lexer.h"
 
-/* Constructor */
-Lexer::Lexer(const std::string &input) : input_(input) {}
+Lexer::Lexer(const std::string &input) : input_(input), pos_(0), line_(1), column_(1) {}
 
-/* Destructor */
-Lexer::~Lexer(void) {}
+Lexer::~Lexer() {}
 
-/* peek description */
-char Lexer::peek(void) const {}
+char Lexer::peek() const {
+    // TODO: Return character at current position without advancing
+}
 
-/* get description */
-char Lexer::get(void) {}
+char Lexer::get() {
+    // TODO: Return character at current position and advance
+}
 
-/* skip withe space description */
-void Lexer::skip_white_space(void) {}
+void Lexer::skip_white_space() {
+    // TODO: Skip whitespace characters and update line/column tracking
+}
 
-/* read number description */
-Token Lexer::read_number(void) {}
+Token Lexer::read_number() {
+    // TODO: Parse and return a number token
+}
 
-/* read identifier description */
-Token Lexer::read_identifier(void) {}
+Token Lexer::read_identifier() {
+    // TODO: Parse and return an identifier token
+}
