@@ -25,4 +25,4 @@ class Lexer {
     size_t pos_;
     int line_;
     int column_;
-}
+};
