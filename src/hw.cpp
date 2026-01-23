@@ -27,13 +27,15 @@ std::string token_type_to_string(TokenType type) {
             return "RParen";
         case TokenType::EndOfFile:
             return "EndOfFile";
+        case TokenType::Invalid:
+            return "Invalid";
     }
 
     return "Unknown";
 }
 
 int main(void) {
-    std::string input = "sin(theta) + sqrt(v2^3) * 3.14";
+    std::string input = "sin(theta*x) + sqrt(v2*x^3) * PI/2";
 
     Lexer lexer(input);
 
@@ -45,4 +47,4 @@ int main(void) {
     }
 
     return 0;
-} 
+}
