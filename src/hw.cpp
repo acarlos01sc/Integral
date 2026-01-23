@@ -35,13 +35,18 @@ std::string token_type_to_string(TokenType type) {
 }
 
 int main(void) {
-    std::string input = "sin(theta*x) + sqrt(v2*x^3) * PI/2";
+    std::string input;
+    std::string stream;
+
+    while (std::getline(std::cin, stream)) {
+        input = input + stream;
+    }
 
     Lexer lexer(input);
 
     std::vector<Token> tokens = lexer.tokenize();
 
-    for (const Token &t : tokens) {
+    for (const Token& t : tokens) {
         std::cout << token_type_to_string(t.type) << " " << "'" << t.lexeme
                   << "'" << '\n';
     }
