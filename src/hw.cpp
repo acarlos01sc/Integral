@@ -35,11 +35,11 @@ std::string token_type_to_string(TokenType type) {
 }
 
 int main(void) {
-    std::string input;
+    std::string input = "";
     std::string stream;
 
     while (std::getline(std::cin, stream)) {
-        input = input + stream;
+        input += stream;
     }
 
     Lexer lexer(input);
