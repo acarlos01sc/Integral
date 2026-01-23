@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include "token.h"
+#include <cstddef>
 #include <string>
 #include <vector>
 
+#include "token.h"
+
 class Lexer {
-  public:
+   public:
     explicit Lexer(const std::string &input);
 
-    ~Lexer();
-    
     Token next();
     std::vector<Token> tokenize();
 
-  private:
+   private:
     char peek() const;
     char get();
     void skip_white_space();
@@ -25,6 +25,6 @@ class Lexer {
 
     const std::string &input_;
     size_t pos_;
-    int line_;
-    int column_;
+    size_t line_;
+    size_t column_;
 };

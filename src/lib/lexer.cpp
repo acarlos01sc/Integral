@@ -10,7 +10,7 @@
 Lexer::Lexer(const std::string &input)
     : input_(input), pos_(0), line_(1), column_(1) {}
 
-Lexer::~Lexer() {}
+//Lexer::~Lexer() {}
 
 char Lexer::peek() const {
     // TODO: Return character at current position without advancing
@@ -124,4 +124,4 @@ std::vector<Token> Lexer::tokenize() {
     }
 
     return tokens;
-}
+} 
