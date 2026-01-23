@@ -3,8 +3,11 @@
 #include <memory>
 #include <string>
 
+namespace ast {
 
-namespace ast{
+enum class UnaryOp { Plus, Minus };
+
+enum class BinaryOp { Add, Sub, Mul, Div };
 
 struct Expr {
     virtual ~Expr() = default;
@@ -12,21 +15,29 @@ struct Expr {
 
 struct NumberExpr : Expr {
     double value;
-    explicit NumberExpr(double v) : value(v) {}
+    explicit NumberExpr(double value) : value(value) {}
 };
 
 struct VariableExpr : Expr {
     std::string name;
-    explicit VariableExpr(std::string n) : name(std::move(n)) {}
+    explicit VariableExpr(std::string name) : name(std::move(name)) {}
+};
+
+struct UnaryExpr : Expr {
+    UnaryOp op;
+    std::unique_ptr<Expr> operand;
+    UnaryExpr(UnaryOp op, std::unique_ptr<Expr> operand)
+        : op(op), operand(std::move(operand)) {}
 };
 
 struct BinaryExpr : Expr {
-    char op;
+    BinaryOp op;
     std::unique_ptr<Expr> left;
     std::unique_ptr<Expr> right;
 
-    BinaryExpr(char op, std::unique_ptr<Expr> l, std::unique_ptr<Expr> r)
-        : op(op), left(std::move(l)), right(std::move(r)) {}
+    BinaryExpr(BinaryOp op, std::unique_ptr<Expr> left,
+               std::unique_ptr<Expr> right)
+        : op(op), left(std::move(left)), right(std::move(right)) {}
 };
 
-}
+}  // namespace ast
