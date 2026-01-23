@@ -3,6 +3,9 @@
 #include <memory>
 #include <string>
 
+
+namespace ast{
+
 struct Expr {
     virtual ~Expr() = default;
 };
@@ -23,5 +26,7 @@ struct BinaryExpr : Expr {
     std::unique_ptr<Expr> right;
 
     BinaryExpr(char op, std::unique_ptr<Expr> l, std::unique_ptr<Expr> r)
-        : op(op), left(std::move(l), right(std::move(r))) {}
+        : op(op), left(std::move(l)), right(std::move(r)) {}
 };
+
+}

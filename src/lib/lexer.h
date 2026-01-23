@@ -8,10 +8,15 @@
 
 #include "token.h"
 
+
 class Lexer {
    public:
+    /**
+     * constructor 
+     *
+     * @param input input string to lexer 
+     */
     explicit Lexer(const std::string &input);
-
     Token next();
     std::vector<Token> tokenize();
 
