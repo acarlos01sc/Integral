@@ -7,7 +7,7 @@ namespace ast {
 
 enum class UnaryOp { Plus, Minus };
 
-enum class BinaryOp { Add, Sub, Mul, Div };
+enum class BinaryOp { Add, Sub, Mul, Div, Pow };
 
 struct Expr {
     virtual ~Expr() = default;
@@ -38,6 +38,14 @@ struct BinaryExpr : Expr {
     BinaryExpr(BinaryOp op, std::unique_ptr<Expr> left,
                std::unique_ptr<Expr> right)
         : op(op), left(std::move(left)), right(std::move(right)) {}
+};
+
+struct CallExpr : Expr {
+    std::string callee;
+    std::unique_ptr<Expr> argument;
+
+    CallExpr(std::string callee, std::unique_ptr<Expr> argument)
+        : callee(std::move(callee)), argument(std::move(argument)) {}
 };
 
 }  // namespace ast

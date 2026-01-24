@@ -3,16 +3,15 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+
 #include "ast.h"
 #include "lexer.h"
 #include "token.h"
 
-Parser::Parser(Lexer& lexer): lexer(lexer) {
-    advance();
-}
+Parser::Parser(Lexer& lexer) : lexer(lexer) { advance(); }
 
 std::unique_ptr<ast::Expr> Parser::parse() {
-    auto expr=expression();
+    auto expr = expression();
     if (current.type != TokenType::EndOfFile) {
         throw std::runtime_error("Unexpected token after expression");
     }
@@ -20,12 +19,10 @@ std::unique_ptr<ast::Expr> Parser::parse() {
     return expr;
 }
 
-void Parser::advance() {
-    current=lexer.next();
-}
+void Parser::advance() { current = lexer.next(); }
 
 bool Parser::match(TokenType type) {
-    if (current.type==type) {
+    if (current.type == type) {
         advance();
         return true;
     }
@@ -65,27 +62,31 @@ static ast::UnaryOp toUnaryOp(TokenType type) {
 }
 
 std::unique_ptr<ast::Expr> Parser::expression() {
-    auto left=term();
+    auto left = term();
 
-    while (current.type==TokenType::Plus||current.type==TokenType::Minus) {
+    while (current.type == TokenType::Plus ||
+           current.type == TokenType::Minus) {
         TokenType opToken = current.type;
         advance();
 
         auto right = term();
-        left=std::make_unique<ast::BinaryExpr>(toBinaryOp(opToken),std::move(left),std::move(right));
+        left = std::make_unique<ast::BinaryExpr>(
+            toBinaryOp(opToken), std::move(left), std::move(right));
     }
     return left;
 }
 
 std::unique_ptr<ast::Expr> Parser::term() {
-    auto left=factor();
+    auto left = parseUnary();
 
-    while (current.type==TokenType::Star||current.type==TokenType::Slash) {
+    while (current.type == TokenType::Star ||
+           current.type == TokenType::Slash) {
         TokenType opToken = current.type;
         advance();
 
-        auto right=factor();
-        left=std::make_unique<ast::BinaryExpr>(toBinaryOp(opToken),std::move(left),std::move(right));
+        auto right = parseUnary();
+        left = std::make_unique<ast::BinaryExpr>(
+            toBinaryOp(opToken), std::move(left), std::move(right));
     }
     return left;
 }
@@ -107,7 +108,7 @@ std::unique_ptr<ast::Expr> Parser::factor() {
 }
 
 std::unique_ptr<ast::Expr> Parser::parseNumber() {
-    double value=std::stod(current.lexeme);
+    double value = std::stod(current.lexeme);
     advance();
     return std::make_unique<ast::NumberExpr>(value);
 }
@@ -115,19 +116,41 @@ std::unique_ptr<ast::Expr> Parser::parseNumber() {
 std::unique_ptr<ast::Expr> Parser::parseVariable() {
     std::string name = current.lexeme;
     advance();
+    if (current.type == TokenType::LParen) {
+        advance();
+        auto arg = expression();
+        expect(TokenType::RParen, "Expected ')'");
+        return std::make_unique<ast::CallExpr>(std::move(name), std::move(arg));
+    }
+
     return std::make_unique<ast::VariableExpr>(std::move(name));
 }
 
 std::unique_ptr<ast::Expr> Parser::parseParenExpr() {
-    expect(TokenType::LParen,"Expected '('");
-    auto expr=expression();
-    expect(TokenType::RParen,"Expected ')'");
+    expect(TokenType::LParen, "Expected '('");
+    auto expr = expression();
+    expect(TokenType::RParen, "Expected ')'");
     return expr;
 }
 
 std::unique_ptr<ast::Expr> Parser::parseUnary() {
-    TokenType opToken=current.type;
-    advance();
-    auto operand=factor();
-    return std::make_unique<ast::UnaryExpr>(toUnaryOp(opToken),std::move(operand));
+    if (current.type==TokenType::Plus||current.type==TokenType::Minus) {
+        TokenType opToken = current.type;
+        advance();
+        auto operand = factor();
+        return std::make_unique<ast::UnaryExpr>(toUnaryOp(opToken),
+                                            std::move(operand));
+    }
+
+    return parsePower();
+}
+
+std::unique_ptr<ast::Expr> Parser::parsePower() {
+    auto left=factor();
+    if (current.type==TokenType::Caret) {
+        advance();
+        auto right=parsePower();
+        return std::make_unique<ast::BinaryExpr>(ast::BinaryOp::Pow,std::move(left),std::move(right));
+    }
+    return left;
 }

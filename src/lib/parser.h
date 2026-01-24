@@ -29,4 +29,5 @@ class Parser {
     std::unique_ptr<ast::Expr> parseVariable();
     std::unique_ptr<ast::Expr> parseParenExpr();
     std::unique_ptr<ast::Expr> parseUnary();
+    std::unique_ptr<ast::Expr> parsePower();
 };
