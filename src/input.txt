@@ -1,1 +1,1 @@
-sqrt(x^3+sin(x))
+tanh(x)/(log(x)+(1/x))
