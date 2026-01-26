@@ -23,6 +23,8 @@ std::string token_type_to_string(TokenType type) {
             return "Slash";
         case TokenType::Caret:
             return "Caret";
+        case TokenType::Pipe:
+            return "Pipe";
         case TokenType::LParen:
             return "LParen";
         case TokenType::RParen:
@@ -49,8 +51,19 @@ inline void printAST(const ast::Expr* expr, int indent = 0) {
         std::cout << "Variable(" << v->name << ")\n";
     } else if (auto u = dynamic_cast<const ast::UnaryExpr*>(expr)) {
         pad();
-        std::cout << "Unary(" << (u->op == ast::UnaryOp::Minus ? "-" : "+")
-                  << ")\n";
+        std::cout << "Unary(";
+        switch (u->op) {
+            case ast::UnaryOp::Plus:
+                std::cout << "+";
+                break;
+            case ast::UnaryOp::Minus:
+                std::cout << "-";
+                break;
+            case ast::UnaryOp::Abs:
+                std::cout << "| |";
+                break;
+        }
+        std::cout << ")\n";
         printAST(u->operand.get(), indent + 1);
     } else if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr)) {
         pad();

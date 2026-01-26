@@ -5,7 +5,7 @@
 
 namespace ast {
 
-enum class UnaryOp { Plus, Minus };
+enum class UnaryOp { Plus, Minus, Abs };
 
 enum class BinaryOp { Add, Sub, Mul, Div, Pow };
 

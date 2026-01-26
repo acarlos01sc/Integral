@@ -12,6 +12,7 @@ enum class TokenType {
     Star,
     Slash,
     Caret,
+    Pipe,
     LParen,
     RParen,
     EndOfFile,

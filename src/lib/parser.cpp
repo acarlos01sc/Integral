@@ -93,6 +93,8 @@ std::unique_ptr<ast::Expr> Parser::term() {
 
 std::unique_ptr<ast::Expr> Parser::factor() {
     switch (current.type) {
+        case TokenType::Pipe:
+            return parseAbsolute();
         case TokenType::Number:
             return parseNumber();
         case TokenType::Identifier:
@@ -153,4 +155,13 @@ std::unique_ptr<ast::Expr> Parser::parsePower() {
         return std::make_unique<ast::BinaryExpr>(ast::BinaryOp::Pow,std::move(left),std::move(right));
     }
     return left;
+}
+
+std::unique_ptr<ast::Expr> Parser::parseAbsolute() {
+    advance();
+    auto expr=expression();
+
+    expect(TokenType::Pipe, "Expected '|' to close absolute value");
+
+    return std::make_unique<ast::UnaryExpr>(ast::UnaryOp::Abs,std::move(expr));
 }
