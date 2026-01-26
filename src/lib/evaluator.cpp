@@ -1,7 +1,9 @@
 #include "evaluator.h"
 
 #include <cmath>
+#include <functional>
 #include <stdexcept>
+#include <unordered_map>
 
 #include "ast.h"
 
@@ -14,6 +16,8 @@ double Evaluator::evaluate(const ast::Expr& expr, const Context& ctx) {
         return evalUnary(*un, ctx);
     if (auto bin = dynamic_cast<const ast::BinaryExpr*>(&expr))
         return evalBinary(*bin, ctx);
+    if (auto call = dynamic_cast<const ast::CallExpr*>(&expr))
+        return evalCall(*call, ctx);
 
     throw std::runtime_error("Undefined expression type");
 }
@@ -22,11 +26,15 @@ double Evaluator::evalNumber(const ast::NumberExpr& expr) { return expr.value; }
 
 double Evaluator::evalVariable(const ast::VariableExpr& expr,
                                const Context& ctx) {
-    auto it = ctx.find(expr.name);
-    if (it == ctx.end())
-        throw std::runtime_error("Undefined variable: " + expr.name);
+    static const std::unordered_map<std::string, double> constants{
+        {"pi", M_PI},
+        {"e", M_E},
+    };
+    if (auto it = constants.find(expr.name); it != constants.end())
+        return it->second;
+    if (auto it = ctx.find(expr.name); it != ctx.end()) return it->second;
 
-    return it->second;
+    throw std::runtime_error("Undefined variable: " + expr.name);
 }
 
 double Evaluator::evalUnary(const ast::UnaryExpr& expr, const Context& ctx) {
@@ -63,4 +71,25 @@ double Evaluator::evalBinary(const ast::BinaryExpr& expr, const Context& ctx) {
     }
 
     throw std::runtime_error("Binary operator not recognized");
+}
+
+double Evaluator::evalCall(const ast::CallExpr& expr, const Context& ctx) {
+    static const std::unordered_map<
+                                    std::string,
+                                    double (*)(double)
+                                    > functions{
+                                                {"sin", std::sin},
+                                                {"cos", std::cos},
+                                                {"tan", std::tan},
+                                                {"log", std::log},
+                                                {"exp", std::exp},
+                                                {"sqrt", std::sqrt},
+                                                {"abs", std::abs},
+        };
+    auto it = functions.find(expr.callee);
+    if (it == functions.end())
+        throw std::runtime_error("Unknow function " + expr.callee);
+
+    double arg = evaluate(*expr.argument, ctx);
+    return it->second(arg);
 }
