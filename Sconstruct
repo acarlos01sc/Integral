@@ -1,0 +1,22 @@
+import os
+
+env = Environment(
+    CXX='clang++', CXXFLAGS=['-std=c++20', '-Wall', '-Wextra', '-O2', '-g'])
+
+BUILD_DIR = 'build'
+SRC_DIR = 'src'
+INCLUDE_DIR = 'include'
+INTERNAL_DIR = os.path.join(SRC_DIR, 'internal')
+CALC_DIR = os.path.join(SRC_DIR, 'calculus')
+TEST_DIR = 'tests'
+
+env.Append(CPPPATH=[INCLUDE_DIR, INTERNAL_DIR])
+
+internal_sources = Glob(f'{INTERNAL_DIR}/*.cpp')
+calculus_sources = Glob(f'{CALC_DIR}/*.cpp')
+
+lib = env.StaticLibrary(target=os.path.join(
+    BUILD_DIR, 'mathlib'), source=internal_sources+calculus_sources)
+
+equation_test = env.Program(target=os.path.join(
+    BUILD_DIR, 'equation'), source=os.path.join(TEST_DIR, 'equations.cpp'), LIBS=[lib],)

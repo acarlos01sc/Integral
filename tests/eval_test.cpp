@@ -1,9 +1,9 @@
 #include <cassert>
 #include <iostream>
 
-#include "lib/lexer.h"
-#include "lib/parser.h"
-#include "lib/evaluator.h"
+#include "../src/internal/lexer.h"
+#include "../src/internal/parser.h"
+#include "../src/internal/evaluator.h"
 
 using EvaluatorCtx = Evaluator::Context;
 

@@ -2,10 +2,10 @@
 #include <string>
 #include <vector>
 
-#include "lib/ast.h"
-#include "lib/lexer.h"
-#include "lib/parser.h"
-#include "lib/token.h"
+#include "../src/internal/ast.h"
+#include "../src/internal/lexer.h"
+#include "../src/internal/parser.h"
+#include "../src/internal/token.h"
 
 std::string token_type_to_string(TokenType type) {
     switch (type) {

@@ -1,7 +1,7 @@
 #include <iostream>
-#include "lib/evaluator.h"
-#include "lib/lexer.h"
-#include "lib/parser.h"
+#include "../src/internal/evaluator.h"
+#include "../src/internal/lexer.h"
+#include "../src/internal/parser.h"
 
 using EvaluatorCtx = Evaluator::Context;
 
