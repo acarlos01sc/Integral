@@ -10,7 +10,7 @@ INTERNAL_DIR = os.path.join(SRC_DIR, 'internal')
 CALC_DIR = os.path.join(SRC_DIR, 'calculus')
 TEST_DIR = 'tests'
 
-env.Append(CPPPATH=[INCLUDE_DIR, INTERNAL_DIR])
+env.Append(CPPPATH=[INCLUDE_DIR, INTERNAL_DIR, CALC_DIR])
 
 internal_sources = Glob(f'{INTERNAL_DIR}/*.cpp')
 calculus_sources = Glob(f'{CALC_DIR}/*.cpp')
@@ -20,3 +20,12 @@ lib = env.StaticLibrary(target=os.path.join(
 
 equation_test = env.Program(target=os.path.join(
     BUILD_DIR, 'equation'), source=os.path.join(TEST_DIR, 'equations.cpp'), LIBS=[lib],)
+
+eval_test = env.Program(target=os.path.join(BUILD_DIR, 'eval_test'),
+                        source=os.path.join(TEST_DIR, 'eval_test.cpp'), LIBS=[lib],)
+
+main_test = env.Program(target=os.path.join(BUILD_DIR, 'main'),
+                        source=os.path.join(TEST_DIR, 'hw.cpp'), LIBS=[lib],)
+
+integrator_test = env.Program(target=os.path.join(
+    BUILD_DIR, 'integrator_test'), source=os.path.join(TEST_DIR, 'integrator_test.cpp'), LIBS=[lib],)
