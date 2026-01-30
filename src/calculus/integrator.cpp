@@ -1,14 +1,14 @@
-#include <mathlib/integrator.h>
+#include <numathap/integrator.h>
 
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 
-#include "evaluator.h"
-#include "lexer.h"
-#include "parser.h"
+#include "internal/evaluator.h"
+#include "internal/lexer.h"
+#include "internal/parser.h"
 
-namespace mathlib {
+namespace numathap {
 
 // ----------------------------------------------------------------
 // Helper function: evaluate f(x) using Evaluator and a context
@@ -114,4 +114,4 @@ double integrate(const std::string& function, const std::string& variable,
     return sign * result;
 }
 
-}  // namespace mathlib
+}  // namespace numathap
