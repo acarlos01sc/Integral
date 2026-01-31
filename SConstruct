@@ -31,7 +31,9 @@ env.Append(CPPPATH=[INCLUDE_DIR, SRC_DIR])
 # Core sources
 # -------------------------------------------------------------------
 
-internal_sources = Glob(f'{INTERNAL_DIR}/*.cpp')
+internal_sources = (Glob(f'{INTERNAL_DIR}/*.cpp') +
+                    Glob(f'{INTERNAL_DIR}/algorithms/*.cpp')
+                    )
 calculus_sources = Glob(f'{CALC_DIR}/*.cpp')
 core_sources = internal_sources + calculus_sources
 
