@@ -41,7 +41,14 @@
 *.dwo
 
 # python virtual environment
-.venv
+__pycache__/
+*.pyc
+*.pyo 
+*.pyd 
+.venv/
+venv/
+*.egg-info/
+dist/
 
 # compiled objects
 build
@@ -53,4 +60,5 @@ build
 .vscode
 
 # documentarion
-doc
+/doc/html/
+/doc/latex/
