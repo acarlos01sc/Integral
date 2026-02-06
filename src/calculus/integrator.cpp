@@ -3,18 +3,23 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "internal/algorithms/gauss_kronrod.h"
+#include "internal/algorithms/simpson.h"
 #include "internal/evaluator.h"
 #include "internal/lexer.h"
 #include "internal/parser.h"
-#include "internal/simpson.h"
 
 namespace numathap {
 
 double integrate(const std::string& function, const std::string& variable,
                  const std::string& lower, const std::string& upper,
                  const IntegratorOptions& options) {
-    if (options.precision <= 0.0) {
-        throw std::invalid_argument("Tolerance must be a positive number");
+    if (options.abs_tol <= 0.0) {
+        throw std::invalid_argument("abs_tol must be a positive number");
+    }
+
+    if (options.maxDepth <= 0) {
+        throw std::invalid_argument("maxDepth must be positive");
     }
 
     // Parse the integrand
@@ -47,16 +52,33 @@ double integrate(const std::string& function, const std::string& variable,
         sign = -1.0;
     }
 
+    // ----------------------------
+    // numerical integrand f(x)
+    // ----------------------------
+    Evaluator::Context ctx;
+
+    auto f = [&](double x) -> double {
+        ctx[variable] = x;
+        return Evaluator::evaluate(*funcExpr, ctx);
+    };
+
+    // --------------------------------
+    // Dispatch integration algorithm
+    // --------------------------------
     double result = 0.0;
 
     switch (options.method) {
         case IntegrationMethod::AdaptiveSimpson:
-            result = internal::adaptive_simpson(
-                *funcExpr, variable, a, b, options.precision, options.maxDepth);
+            result = internal::adaptive_simpson(f, a, b, options.abs_tol,
+                                                options.maxDepth);
             break;
-        
+        case IntegrationMethod::GaussKronrod:
+            result = internal::gauss_kronrod(
+                f, a, b, options.abs_tol, options.maxDepth, options.gk_rule);
+            break;
+
         default:
-                throw std::runtime_error("Integration method not implemented");
+            throw std::runtime_error("Integration method not implemented");
     }
 
     return sign * result;

@@ -1,6 +1,7 @@
-#include "internal/simpson.h"
+#include "internal/algorithms/simpson.h"
 
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 
 #include "internal/evaluator.h"
@@ -8,32 +9,18 @@
 namespace numathap::internal {
 
 // ----------------------------------------------------------------
-// Helper function: evaluate f(x) using Evaluator and a context
-// ----------------------------------------------------------------
-static double eval_function(const ast::Expr& expr, const std::string& var,
-                            double x) {
-    Evaluator::Context ctx;
-    ctx[var] = x;
-
-    double value = Evaluator::evaluate(expr, ctx);
-
-    // Basic numerical sanity check
-    if (!std::isfinite(value)) {
-        throw std::runtime_error("function evaluation in NaN or Inf");
-    }
-
-    return value;
-}
-
-// ----------------------------------------------------------------
 // Simple Simpson's rule on interval [a,b]
 // ----------------------------------------------------------------
-static double simpson(const ast::Expr& expr, const std::string& var, double a,
+static double simpson(const std::function<double(double)>& f, double a,
                       double b) {
     double c = 0.5 * (a + b);
-    double fa = eval_function(expr, var, a);
-    double fb = eval_function(expr, var, b);
-    double fc = eval_function(expr, var, c);
+    double fa = f(a);
+    double fb = f(b);
+    double fc = f(c);
+
+    if (!std::isfinite(fa) || !std::isfinite(fb) || !std::isfinite(fc)) {
+        throw std::runtime_error("function evaluation resulted in NaN or Inf");
+    }
 
     return ((b - a) / 6.0) * (fa + (4.0 * fc) + fb);
 }
@@ -41,16 +28,15 @@ static double simpson(const ast::Expr& expr, const std::string& var, double a,
 // ----------------------------------------------------------------
 // Recursive adaptive Simpson's method
 // ----------------------------------------------------------------
-static double adaptive_simpson_recursive(const ast::Expr& expr,
-                                         const std::string& var, double a,
-                                         double b, double eps, double whole,
-                                         int depth) {
+static double adaptive_simpson_recursive(const std::function<double(double)>& f,
+                                         double a, double b, double eps,
+                                         double whole, int depth) {
     if (depth <= 0) {
         throw std::runtime_error("Adaptive Simpson method did not converge");
     }
     double c = 0.5 * (a + b);
-    double left = simpson(expr, var, a, c);
-    double right = simpson(expr, var, c, b);
+    double left = simpson(f, a, c);
+    double right = simpson(f, c, b);
 
     double delta = left + right - whole;
 
@@ -58,16 +44,20 @@ static double adaptive_simpson_recursive(const ast::Expr& expr,
         return left + right + delta / 15.0;
     }
 
-    return adaptive_simpson_recursive(expr, var, a, c, eps * 0.5, left,
-                                      depth - 1) +
-           adaptive_simpson_recursive(expr, var, c, b, eps * 0.5, right,
-                                      depth - 1);
+    return adaptive_simpson_recursive(f, a, c, eps * 0.5, left, depth - 1) +
+           adaptive_simpson_recursive(f, c, b, eps * 0.5, right, depth - 1);
 }
 
-double adaptive_simpson(const ast::Expr& expr, const std::string& var, double a,
-                        double b, double eps, int maxDepth) {
-    double whole = simpson(expr, var, a, b);
-    return adaptive_simpson_recursive(expr, var, a, b, eps, whole, maxDepth);
+double adaptive_simpson(const std::function<double(double)>& f, double a,
+                        double b, double abs_tol, int maxDepth) {
+    if (abs_tol<=0.0) {
+        throw std::invalid_argument("abs_tol must be positive");
+    }
+    if (maxDepth <= 0) {
+        throw std::invalid_argument("maxDepth must be positive");
+    }
+    double whole = simpson(f,a,b);
+    return adaptive_simpson_recursive(f,a,b,abs_tol,whole,maxDepth);
 }
 
 }  // namespace numathap::internal

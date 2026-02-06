@@ -83,6 +83,13 @@ integrator_test = env.Program(
     LIBS=[lib_static],
 )
 
+test_integrate = env.Program(
+    target=os.path.join(BUILD_DIR, 'test_integrate'),
+    source=os.path.join(TEST_DIR, 'test_integrate.cpp'),
+    LIBS=[lib_static],
+)
+
+
 # -------------------------------------------------------------------
 # Python bindings (pybind11)
 # -------------------------------------------------------------------
@@ -120,4 +127,5 @@ Default([
     main_test,
     integrator_test,
     python_module,
+    test_integrate
 ])

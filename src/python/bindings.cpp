@@ -11,10 +11,10 @@ PYBIND11_MODULE(numathap, m) {
         .value("AdaptiveSimpson", numathap::IntegrationMethod::AdaptiveSimpson)
         .export_values();
 
-    py::class_<numathap::IntegratorOptions>(m,"IntegratorOptions")
+    py::class_<numathap::IntegratorOptions>(m, "IntegratorOptions")
         .def(py::init<>())
-        .def_readwrite("method",&numathap::IntegratorOptions::method)
-        .def_readwrite("precision",&numathap::IntegratorOptions::precision)
+        .def_readwrite("method", &numathap::IntegratorOptions::method)
+        .def_readwrite("abs_tol", &numathap::IntegratorOptions::abs_tol)
         .def_readwrite("max_depth", &numathap::IntegratorOptions::maxDepth);
 
     m.def("integrate", &numathap::integrate, py::arg("expression"),
