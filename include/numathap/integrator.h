@@ -20,7 +20,7 @@ enum class GaussKronrodRule { GK15, GK21 };
  * @brief Options controlling numerical integration
  */
 struct IntegratorOptions {
-    IntegrationMethod method = IntegrationMethod::AdaptiveSimpson;
+    IntegrationMethod method = IntegrationMethod::GaussKronrod;
     double abs_tol = 1e-6;
     int maxDepth = 20;
 
