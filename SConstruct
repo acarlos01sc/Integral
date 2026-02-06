@@ -17,6 +17,8 @@ env = Environment(
     ]
 )
 
+env.Tool('compilation_db')
+
 BUILD_DIR = 'build'
 SRC_DIR = 'src'
 INCLUDE_DIR = 'include'
@@ -120,6 +122,21 @@ python_module = pyenv.SharedLibrary(
 # -------------------------------------------------------------------
 
 Default([
+    lib_static,
+    lib_shared,
+    equation_test,
+    eval_test,
+    main_test,
+    integrator_test,
+    python_module,
+    test_integrate
+])
+
+db = env.CompilationDatabase()
+
+env.AlwaysBuild(db)
+
+env.Depends(db, [
     lib_static,
     lib_shared,
     equation_test,

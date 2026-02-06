@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <stdexcept>
-#include <vector>
 
 namespace numathap::internal {
 

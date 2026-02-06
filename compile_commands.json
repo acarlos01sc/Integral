@@ -1,0 +1,110 @@
+[
+    {
+        "command": "clang++ -o src/internal/evaluator.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc src/internal/evaluator.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/evaluator.cpp",
+        "output": "src/internal/evaluator.o"
+    },
+    {
+        "command": "clang++ -o src/internal/lexer.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc src/internal/lexer.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/lexer.cpp",
+        "output": "src/internal/lexer.o"
+    },
+    {
+        "command": "clang++ -o src/internal/parser.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc src/internal/parser.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/parser.cpp",
+        "output": "src/internal/parser.o"
+    },
+    {
+        "command": "clang++ -o src/internal/algorithms/gauss_kronrod.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc src/internal/algorithms/gauss_kronrod.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/algorithms/gauss_kronrod.cpp",
+        "output": "src/internal/algorithms/gauss_kronrod.o"
+    },
+    {
+        "command": "clang++ -o src/internal/algorithms/simpson.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc src/internal/algorithms/simpson.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/algorithms/simpson.cpp",
+        "output": "src/internal/algorithms/simpson.o"
+    },
+    {
+        "command": "clang++ -o src/calculus/integrator.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc src/calculus/integrator.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/calculus/integrator.cpp",
+        "output": "src/calculus/integrator.o"
+    },
+    {
+        "command": "clang++ -o src/internal/evaluator.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -fPIC -Iinclude -Isrc src/internal/evaluator.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/evaluator.cpp",
+        "output": "src/internal/evaluator.os"
+    },
+    {
+        "command": "clang++ -o src/internal/lexer.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -fPIC -Iinclude -Isrc src/internal/lexer.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/lexer.cpp",
+        "output": "src/internal/lexer.os"
+    },
+    {
+        "command": "clang++ -o src/internal/parser.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -fPIC -Iinclude -Isrc src/internal/parser.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/parser.cpp",
+        "output": "src/internal/parser.os"
+    },
+    {
+        "command": "clang++ -o src/internal/algorithms/gauss_kronrod.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -fPIC -Iinclude -Isrc src/internal/algorithms/gauss_kronrod.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/algorithms/gauss_kronrod.cpp",
+        "output": "src/internal/algorithms/gauss_kronrod.os"
+    },
+    {
+        "command": "clang++ -o src/internal/algorithms/simpson.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -fPIC -Iinclude -Isrc src/internal/algorithms/simpson.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/internal/algorithms/simpson.cpp",
+        "output": "src/internal/algorithms/simpson.os"
+    },
+    {
+        "command": "clang++ -o src/calculus/integrator.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -fPIC -Iinclude -Isrc src/calculus/integrator.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/calculus/integrator.cpp",
+        "output": "src/calculus/integrator.os"
+    },
+    {
+        "command": "clang++ -o tests/equations.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc tests/equations.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "tests/equations.cpp",
+        "output": "tests/equations.o"
+    },
+    {
+        "command": "clang++ -o tests/eval_test.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc tests/eval_test.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "tests/eval_test.cpp",
+        "output": "tests/eval_test.o"
+    },
+    {
+        "command": "clang++ -o tests/hw.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc tests/hw.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "tests/hw.cpp",
+        "output": "tests/hw.o"
+    },
+    {
+        "command": "clang++ -o tests/integrator_test.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc tests/integrator_test.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "tests/integrator_test.cpp",
+        "output": "tests/integrator_test.o"
+    },
+    {
+        "command": "clang++ -o tests/test_integrate.o -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -Iinclude -Isrc tests/test_integrate.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "tests/test_integrate.cpp",
+        "output": "tests/test_integrate.o"
+    },
+    {
+        "command": "clang++ -o src/python/bindings.os -c -std=c++20 -Wall -Wextra -O2 -g -fPIC -I/usr/include/python3.12 -I/home/acarlos01/Documents/Estudo-TI/C++/Integral/.venv/lib/python3.12/site-packages/pybind11/include -fPIC -Iinclude -Isrc src/python/bindings.cpp",
+        "directory": "/home/acarlos01/Documents/Estudo-TI/C++/Integral",
+        "file": "src/python/bindings.cpp",
+        "output": "src/python/bindings.os"
+    }
+]
