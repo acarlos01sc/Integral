@@ -61,5 +61,6 @@ build
 .vscode
 
 # documentarion
+doc
 /doc/html/
 /doc/latex/
