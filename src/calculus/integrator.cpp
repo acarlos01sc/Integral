@@ -1,7 +1,6 @@
 #include <numathap/integrator.h>
 
 #include <cmath>
-#include <limits>
 #include <stdexcept>
 
 #include "internal/algorithms/gauss_kronrod.h"

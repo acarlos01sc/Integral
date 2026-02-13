@@ -1,4 +1,5 @@
 #include <numathap/integrator.h>
+#include <numathap/limit.h>           // include do limit
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -10,29 +11,6 @@ numathap
 ========
 
 Numerical calculus and integration library.
-
-This module provides symbolic expression parsing combined with
-high-accuracy numerical integration methods such as:
-
-- Adaptive Simpson
-- Gauss–Kronrod (GK15, GK21)
-
-Example
--------
->>> import numathap as nm
->>> nm.integrate("sin(x)", "x", "0", "pi")
-2.0
-
->>> nm.integrate(
-...     "exp(-x*x)",
-...     "x",
-...     "-5",
-...     "5",
-...     method=nm.IntegrationMethod.GaussKronrod,
-...     gk_rule=nm.GaussKronrodRule.GK21,
-...     abs_tol=1e-10
-... )
-1.772453850905516
 )pbdoc";
 
     // -----------------------------
@@ -46,6 +24,18 @@ Example
     py::enum_<numathap::GaussKronrodRule>(m, "GaussKronrodRule")
         .value("GK15", numathap::GaussKronrodRule::GK15)
         .value("GK21", numathap::GaussKronrodRule::GK21)
+        .export_values();
+
+    py::enum_<numathap::LimitSide>(m, "LimitSide")
+        .value("Both", numathap::LimitSide::Both)
+        .value("Left", numathap::LimitSide::Left)
+        .value("Right", numathap::LimitSide::Right)
+        .export_values();
+
+    py::enum_<numathap::LimitMethod>(m, "LimitMethod")
+        .value("Auto", numathap::LimitMethod::Auto)
+        .value("Forward", numathap::LimitMethod::Forward)
+        .value("Richardson", numathap::LimitMethod::Richardson)
         .export_values();
 
     // -----------------------------
@@ -72,45 +62,68 @@ Example
         py::arg("gk_rule") = numathap::GaussKronrodRule::GK15,
         R"pbdoc(
 Integrate a scalar function of one variable.
+)pbdoc");
+
+    // -----------------------------
+    // Python-friendly limit()
+    // -----------------------------
+    m.def(
+        "limit",
+        [](const std::string& expression, const std::string& variable,
+           const std::string& value,
+           numathap::LimitSide side,
+           numathap::LimitMethod method,
+           double abs_tol,
+           double rel_tol,
+           int max_iterations) {
+
+            numathap::LimitOptions options;
+            options.side = side;
+            options.method = method;
+            options.abs_tolerance = abs_tol;
+            options.rel_tolerance = rel_tol;
+            options.max_iterations = max_iterations;
+
+            numathap::LimitResult res = numathap::limit(expression, variable, value, options);
+
+            // Retorna um dict Python-friendly
+            py::dict pyres;
+            pyres["value"] = res.value;
+            pyres["status"] = static_cast<int>(res.status); // enum como int
+            pyres["iterations"] = res.iterations;
+            return pyres;
+        },
+        py::arg("expression"), py::arg("variable"), py::arg("value"),
+        py::arg("side") = numathap::LimitSide::Both,
+        py::arg("method") = numathap::LimitMethod::Auto,
+        py::arg("abs_tol") = 1e-8,
+        py::arg("rel_tol") = 1e-8,
+        py::arg("max_iterations") = 20,
+        R"pbdoc(
+Compute the limit of a function as a variable approaches a value.
 
 Parameters
 ----------
 expression : str
-    Mathematical expression to integrate (e.g. "sin(x)", "exp(-x*x)").
+    Mathematical expression (e.g. "sin(x)/x").
 variable : str
-    Integration variable name.
-lower : str
-    Lower integration limit (expression allowed).
-upper : str
-    Upper integration limit (expression allowed).
-method : IntegrationMethod, optional
-    Numerical integration method.
-    Default is IntegrationMethod.GaussKronrod.
+    Variable name.
+value : str
+    Point of approach ("0", "1.5", "inf", "-inf").
+side : LimitSide, optional
+    Direction of approach (Both, Left, Right).
+method : LimitMethod, optional
+    Numerical method (Auto, Forward, Richardson).
 abs_tol : float, optional
-    Absolute error tolerance.
-max_depth : int, optional
-    Maximum recursion depth (used by adaptive algorithms).
-gk_rule : GaussKronrodRule, optional
-    Gauss–Kronrod quadrature rule (GK15 or GK21).
-    Only used when method == IntegrationMethod.GaussKronrod.
+    Absolute tolerance.
+rel_tol : float, optional
+    Relative tolerance.
+max_iterations : int, optional
+    Maximum number of refinement iterations.
 
 Returns
 -------
-float
-    Numerical value of the definite integral.
-
-Notes
------
-- If lower > upper, the sign of the integral is adjusted automatically.
-- Expressions are parsed symbolically and evaluated numerically.
-
-Examples
---------
->>> integrate("sin(x)", "x", "0", "pi")
-2.0
-
->>> integrate("1/(1+x*x)", "x", "-10", "10",
-...           abs_tol=1e-10)
-3.141592653589793
+dict
+    Dictionary with keys: "value", "status", "iterations".
 )pbdoc");
 }
