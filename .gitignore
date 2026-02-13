@@ -52,7 +52,7 @@ dist/
 
 # compiled objects
 build
-.cache
+.cache/
 
 # scons objects
 .sconsign.dblite

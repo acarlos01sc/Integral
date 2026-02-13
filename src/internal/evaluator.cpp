@@ -1,7 +1,7 @@
 #include "evaluator.h"
 
 #include <cmath>
-#include <functional>
+#include <limits>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -29,7 +29,9 @@ double Evaluator::evalVariable(const ast::VariableExpr& expr,
     static const std::unordered_map<std::string, double> constants{
         {"pi", M_PI},
         {"e", M_E},
+        {"inf", std::numeric_limits<double>::infinity()},
     };
+
     if (auto it = constants.find(expr.name); it != constants.end())
         return it->second;
     if (auto it = ctx.find(expr.name); it != ctx.end()) return it->second;
@@ -74,18 +76,11 @@ double Evaluator::evalBinary(const ast::BinaryExpr& expr, const Context& ctx) {
 }
 
 double Evaluator::evalCall(const ast::CallExpr& expr, const Context& ctx) {
-    static const std::unordered_map<
-                                    std::string,
-                                    double (*)(double)
-                                    > functions{
-                                                {"sin", std::sin},
-                                                {"cos", std::cos},
-                                                {"tan", std::tan},
-                                                {"log", std::log},
-                                                {"exp", std::exp},
-                                                {"sqrt", std::sqrt},
-                                                {"abs", std::abs},
-        };
+    static const std::unordered_map<std::string, double (*)(double)> functions{
+        {"sin", std::sin}, {"cos", std::cos}, {"tan", std::tan},
+        {"log", std::log}, {"exp", std::exp}, {"sqrt", std::sqrt},
+        {"abs", std::abs},
+    };
     auto it = functions.find(expr.callee);
     if (it == functions.end())
         throw std::runtime_error("Unknow function " + expr.callee);
