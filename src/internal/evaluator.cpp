@@ -78,6 +78,9 @@ double Evaluator::evalBinary(const ast::BinaryExpr& expr, const Context& ctx) {
 double Evaluator::evalCall(const ast::CallExpr& expr, const Context& ctx) {
     static const std::unordered_map<std::string, double (*)(double)> functions{
         {"sin", std::sin}, {"cos", std::cos}, {"tan", std::tan},
+        {"asin", std::asin}, {"acos", std::acos}, {"atan", std::atan},
+        {"sinh", std::sinh}, {"cosh", std::cosh}, {"tanh", std::tanh},
+        {"asinh", std::asinh}, {"acosh", std::acosh}, {"atanh", std::atanh},
         {"log", std::log}, {"exp", std::exp}, {"sqrt", std::sqrt},
         {"abs", std::abs},
     };
