@@ -12,44 +12,24 @@ namespace numathap::internal {
 
 namespace {
 
-constexpr double gk15_x[8] = {
-    0.0000000000000000,
-    0.2077849550078985,
-    0.4058451513773972,
-    0.5860872354676911,
-    0.7415311855993945,
-    0.8648644233597691,
-    0.9491079123427585,
-    0.9914553711208126
-};
+constexpr double gk15_x[8] = {0.0000000000000000, 0.2077849550078985,
+                              0.4058451513773972, 0.5860872354676911,
+                              0.7415311855993945, 0.8648644233597691,
+                              0.9491079123427585, 0.9914553711208126};
 
-constexpr double gk15_wk[8] = {
-    0.2094821410847278,
-    0.2044329400752989,
-    0.1903505780647854,
-    0.1690047266392679,
-    0.1406532597155259,
-    0.1047900103222502,
-    0.0630920926299786,
-    0.0229353220105292
-};
+constexpr double gk15_wk[8] = {0.2094821410847278, 0.2044329400752989,
+                               0.1903505780647854, 0.1690047266392679,
+                               0.1406532597155259, 0.1047900103222502,
+                               0.0630920926299786, 0.0229353220105292};
 
-constexpr double gk15_wg[4] = {
-    0.4179591836734694,
-    0.3818300505051189,
-    0.2797053914892766,
-    0.1294849661688697
-};
+constexpr double gk15_wg[4] = {0.4179591836734694, 0.3818300505051189,
+                               0.2797053914892766, 0.1294849661688697};
 
 // ------------------------------------------------------------
 // Compute Gauss–Kronrod 7/15 on [a, b]
 // ------------------------------------------------------------
-static void gk15_rule(const std::function<double(double)>& f,
-                      double a,
-                      double b,
-                      double& gauss,
-                      double& kronrod) {
-
+static void gk15_rule(const std::function<double(double)>& f, double a,
+                      double b, double& gauss, double& kronrod) {
     const double c = 0.5 * (a + b);
     const double h = 0.5 * (b - a);
 
@@ -62,7 +42,7 @@ static void gk15_rule(const std::function<double(double)>& f,
     }
 
     kronrod += gk15_wk[0] * fc;
-    gauss   += gk15_wg[0] * fc;
+    gauss += gk15_wg[0] * fc;
 
     for (int i = 1; i < 8; ++i) {
         double x = h * gk15_x[i];
@@ -70,7 +50,8 @@ static void gk15_rule(const std::function<double(double)>& f,
         double f2 = f(c + x);
 
         if (!std::isfinite(f1) || !std::isfinite(f2)) {
-            throw std::runtime_error("Function evaluation resulted in NaN or Inf");
+            throw std::runtime_error(
+                "Function evaluation resulted in NaN or Inf");
         }
 
         kronrod += gk15_wk[i] * (f1 + f2);
@@ -81,21 +62,20 @@ static void gk15_rule(const std::function<double(double)>& f,
         if (i == 6) gauss += gk15_wg[3] * (f1 + f2);
     }
 
-    gauss   *= h;
+    gauss *= h;
     kronrod *= h;
 }
 
 // ------------------------------------------------------------
 // Recursive adaptive driver
 // ------------------------------------------------------------
-static double adaptive_gk15(const std::function<double(double)>& f,
-                            double a,
-                            double b,
-                            double abs_tol,
-                            int depth) {
-
+static double adaptive_gk15(const std::function<double(double)>& f, double a,
+                            double b, double abs_tol, int depth) {
     if (depth <= 0) {
-        throw std::runtime_error("Gauss–Kronrod method did not converge");
+        throw std::runtime_error(
+            "Gauss–Kronrod method did not converge The integrand may be "
+            "oscillatory or slowly decaiying. Consider using a method suited "
+            "for oscillatory integrals");
     }
 
     double g, k;
@@ -118,13 +98,8 @@ static double adaptive_gk15(const std::function<double(double)>& f,
 // ================================================================
 // Public interface
 // ================================================================
-double gauss_kronrod(const std::function<double(double)>& f,
-                     double a,
-                     double b,
-                     double abs_tol,
-                     int maxDepth,
-                     GaussKronrodRule rule) {
-
+double gauss_kronrod(const std::function<double(double)>& f, double a, double b,
+                     double abs_tol, int maxDepth, GaussKronrodRule rule) {
     if (abs_tol <= 0.0) {
         throw std::invalid_argument("abs_tol must be positive");
     }
