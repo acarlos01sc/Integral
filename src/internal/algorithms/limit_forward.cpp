@@ -1,8 +1,8 @@
 #include "limit_forward.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
-#include <algorithm>
 
 namespace numathap::internal {
 
@@ -11,8 +11,8 @@ namespace {
 // ------------------------------------------------------------
 // Convergence check
 // ------------------------------------------------------------
-inline bool converged(double prev, double current,
-                      double abs_tol, double rel_tol) {
+inline bool converged(double prev, double current, double abs_tol,
+                      double rel_tol) {
     double diff = std::abs(current - prev);
     double tol = std::max(abs_tol, rel_tol * std::abs(current));
     return diff < tol;
@@ -23,32 +23,30 @@ inline bool converged(double prev, double current,
 // ------------------------------------------------------------
 constexpr double LARGE_THRESHOLD = 1e12;
 
-} // anonymous namespace
+// geometric growth to infinite
+inline double growth_sequence(int k) { return std::pow(4.0, k); }
+
+}  // anonymous namespace
 
 // ----------------------------------------------------------------------
 // Forward Sequence Implementation
 // ----------------------------------------------------------------------
-LimitResult limit_forward(
-    const std::function<double(double)>& f,
-    double point,
-    const numathap::LimitOptions& options,
-    bool infinite,
-    bool negative_inf) {
-
+LimitResult limit_forward(const std::function<double(double)>& f, double point,
+                          const numathap::LimitOptions& options, bool infinite,
+                          bool negative_inf) {
     LimitResult result;
-    double prev = 0.0;
+    double prev = std::numeric_limits<double>::quiet_NaN();
     double current = 0.0;
 
     for (int k = 1; k <= options.max_iterations; ++k) {
-
-        // Step size: h → 0
-        double h = std::pow(0.5, k);
         double x;
 
         if (infinite) {
+            double scale = growth_sequence(k);
             // Transform x = ±1/h → ±∞
-            x = negative_inf ? -1.0 / h : 1.0 / h;
+            x = negative_inf ? -scale : scale;
         } else {
+            double h = std::pow(0.5, k);
             // Single-sided or default
             if (options.side == LimitSide::Left)
                 x = point - h;
@@ -74,10 +72,9 @@ LimitResult limit_forward(
             return result;
         }
 
-        if (k > 1) {
+        if (k > 1 && std::isfinite(prev)) {
             // Check convergence
-            if (converged(prev, current,
-                          options.abs_tolerance,
+            if (converged(prev, current, options.abs_tolerance,
                           options.rel_tolerance)) {
                 result.value = current;
                 result.status = LimitStatus::Converged;
@@ -105,4 +102,4 @@ LimitResult limit_forward(
     return result;
 }
 
-} // namespace numathap::internal
+}  // namespace numathap::internal
