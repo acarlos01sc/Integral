@@ -36,7 +36,7 @@ struct LimitOptions {
     double rel_tolerance = 1e-8;
 
     /// Maximum number of refinement iterations
-    int max_iterations = 20;
+    int max_iterations = 30;
 
     /// Numerical method to use
     LimitMethod method = LimitMethod::Auto;

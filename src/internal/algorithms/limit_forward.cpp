@@ -1,105 +1,163 @@
-#include "limit_forward.h"
-
-#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
+#include <algorithm>
+
+#include "limit_forward.h"
 
 namespace numathap::internal {
 
 namespace {
 
-// ------------------------------------------------------------
-// Convergence check
-// ------------------------------------------------------------
-inline bool converged(double prev, double current, double abs_tol,
+// ============================================================
+// Wynn epsilon acceleration
+// ============================================================
+double wynn_epsilon(const std::vector<double>& seq) {
+
+    size_t n = seq.size();
+    if (n < 3) return seq.back();
+
+    std::vector<double> e(seq);
+
+    for (size_t k = 1; k < n; ++k) {
+        for (size_t i = 0; i < n - k; ++i) {
+
+            double diff = e[i + 1] - e[i];
+
+            if (std::abs(diff) < std::numeric_limits<double>::epsilon()) {
+                e[i] = std::numeric_limits<double>::infinity();
+            } else {
+                e[i] = e[i + 1] + 1.0 / diff;
+            }
+        }
+    }
+
+    return e[0];
+}
+
+// ============================================================
+// Hybrid convergence check
+// ============================================================
+inline bool converged(double prev,
+                      double current,
+                      double abs_tol,
                       double rel_tol) {
+
     double diff = std::abs(current - prev);
     double tol = std::max(abs_tol, rel_tol * std::abs(current));
     return diff < tol;
 }
 
-// ------------------------------------------------------------
-// Heuristic threshold for divergence
-// ------------------------------------------------------------
-constexpr double LARGE_THRESHOLD = 1e12;
+} // anonymous namespace
 
-// geometric growth to infinite
-inline double growth_sequence(int k) { return std::pow(4.0, k); }
-
-}  // anonymous namespace
-
-// ----------------------------------------------------------------------
-// Forward Sequence Implementation
-// ----------------------------------------------------------------------
-LimitResult limit_forward(const std::function<double(double)>& f, double point,
-                          const numathap::LimitOptions& options, bool infinite,
-                          bool negative_inf) {
+// ============================================================
+// MAIN LIMIT ALGORITHM
+// ============================================================
+LimitResult limit_forward(
+    const std::function<double(double)>& f,
+    double point,
+    const LimitOptions& options,
+    bool infinite,
+    bool negative_inf)
+{
     LimitResult result;
-    double prev = std::numeric_limits<double>::quiet_NaN();
-    double current = 0.0;
+
+    std::vector<double> seq;
+    seq.reserve(options.max_iterations);
+
+    double h = 0.5;
+    double last_accel = std::numeric_limits<double>::quiet_NaN();
 
     for (int k = 1; k <= options.max_iterations; ++k) {
+
         double x;
 
+        // --------------------------------------------------------
+        // Infinite limit transform (tan mapping)
+        // --------------------------------------------------------
         if (infinite) {
-            double scale = growth_sequence(k);
-            // Transform x = ±1/h → ±∞
-            x = negative_inf ? -scale : scale;
+
+            double t = (M_PI / 2.0) * (1.0 - h);
+            x = std::tan(t);
+
+            if (negative_inf)
+                x = -x;
+
         } else {
-            double h = std::pow(0.5, k);
-            // Single-sided or default
+
             if (options.side == LimitSide::Left)
                 x = point - h;
             else
                 x = point + h;
         }
 
-        // Evaluate function safely
-        current = f(x);
+        double fx = f(x);
 
-        // Check for NaN / Inf
-        if (std::isnan(current)) {
-            result.value = std::numeric_limits<double>::quiet_NaN();
-            result.status = LimitStatus::Undefined;
-            result.iterations = k;
-            return result;
+        if (!std::isfinite(fx)) {
+            h *= 0.5;
+            continue;
         }
 
-        if (std::isinf(current) || std::abs(current) > LARGE_THRESHOLD) {
-            result.value = current;
-            result.status = LimitStatus::Divergent;
-            result.iterations = k;
-            return result;
-        }
+        seq.push_back(fx);
 
-        if (k > 1 && std::isfinite(prev)) {
-            // Check convergence
-            if (converged(prev, current, options.abs_tolerance,
-                          options.rel_tolerance)) {
-                result.value = current;
-                result.status = LimitStatus::Converged;
-                result.iterations = k;
-                return result;
+        // --------------------------------------------------------
+        // Apply Wynn when enough data
+        // --------------------------------------------------------
+        if (seq.size() >= 3) {
+
+            double accel = wynn_epsilon(seq);
+
+            if (std::isfinite(accel)) {
+
+                // ⭐ Require asymptotic regime for infinite limits
+                bool asymptotic_regime =
+                    !infinite || (h < std::sqrt(options.abs_tolerance));
+
+                if (asymptotic_regime) {
+
+                    // ⭐ Zero limit criterion
+                    if (std::abs(accel) < options.abs_tolerance) {
+                        result.value = accel;
+                        result.status = LimitStatus::Converged;
+                        result.iterations = k;
+                        return result;
+                    }
+
+                    // ⭐ Standard convergence
+                    if (std::isfinite(last_accel) &&
+                        converged(last_accel, accel,
+                                  options.abs_tolerance,
+                                  options.rel_tolerance)) {
+
+                        result.value = accel;
+                        result.status = LimitStatus::Converged;
+                        result.iterations = k;
+                        return result;
+                    }
+                }
+
+                last_accel = accel;
             }
-
-            // Simple oscillation detection: sign alternates
-            if (std::signbit(prev) != std::signbit(current)) {
-                result.value = std::numeric_limits<double>::quiet_NaN();
-                result.status = LimitStatus::Oscillatory;
-                result.iterations = k;
-                return result;
-            }
         }
 
-        prev = current;
+        h *= 0.5;
     }
 
-    // Maximum iterations reached
-    result.value = current;
-    result.status = LimitStatus::MaxIterationsReached;
+    // --------------------------------------------------------
+    // Fallback
+    // --------------------------------------------------------
+    if (!seq.empty()) {
+        result.value = seq.back();
+        result.status = LimitStatus::MaxIterationsReached;
+        result.iterations = options.max_iterations;
+        return result;
+    }
+
+    result.value = std::numeric_limits<double>::quiet_NaN();
+    result.status = LimitStatus::Undefined;
     result.iterations = options.max_iterations;
 
     return result;
 }
 
-}  // namespace numathap::internal
+} // namespace numathap::internal

@@ -98,7 +98,7 @@ Integrate a scalar function of one variable.
         py::arg("method") = numathap::LimitMethod::Auto,
         py::arg("abs_tol") = 1e-8,
         py::arg("rel_tol") = 1e-8,
-        py::arg("max_iterations") = 20,
+        py::arg("max_iterations") = 30,
         R"pbdoc(
 Compute the limit of a function as a variable approaches a value.
 
