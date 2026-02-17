@@ -6,21 +6,21 @@ seamless integration with scientific workflows and data analysis environments.
 
 # Purpose
 
-The main goal os Numathap is to provide a modern, reliable, and well-structured toolkit for numerical
+The main goal of Numathap is to provide a modern, reliable, and well-structured toolkit for numerical
 computation, including integration, limits, and other mathematical operations commonly used in scientific
 and engineering applications.
 
-By combining the performance os C++ with the accessibility os Python, Numathap aims to serve both high-performance
+By combining the performance of C++ with the accessibility os Python, Numathap aims to serve both high-performance
 computing needs and rapid prototyping.
 
-# Use os Artificial Intelligence Tools
+# Use of Artificial Intelligence Tools
 
 Artificial Intelligence tools have been used as development aids throughout the project.
 These tools supported:
 
 - Code review and refinement
 - Algorithm exploration
-- Documentaron drafting
+- Documentation drafting
 - Conceptual validation
 
 All design decisions, implementations, and validations were ultimately reviewed and curated by the project
