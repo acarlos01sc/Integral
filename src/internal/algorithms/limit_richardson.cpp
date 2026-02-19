@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include "internal/numeric_utils.h"
 
 namespace numathap::internal {
 
@@ -73,7 +74,7 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
             // Convergence check
             if (converged(prev, current, options.abs_tolerance,
                           options.rel_tolerance)) {
-                result.value = current;
+                result.value = finalize_value(current,options.abs_tolerance);
                 result.status = LimitStatus::Converged;
                 result.iterations = k;
                 return result;
@@ -92,7 +93,7 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
     }
 
     // Max iterations reached
-    result.value = current;
+    result.value = finalize_value(current,options.abs_tolerance);
     result.status = LimitStatus::MaxIterationsReached;
     result.iterations = options.max_iterations;
 

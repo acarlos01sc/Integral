@@ -8,6 +8,7 @@
 #include "internal/algorithms/limit_richardson.h"
 #include "internal/evaluator.h"
 #include "internal/lexer.h"
+#include "internal/numeric_utils.h"
 #include "internal/parser.h"
 
 namespace numathap {
@@ -144,7 +145,7 @@ LimitResult limit(const std::string& expression,
 
             if (diff < tol) {
                 return {
-                    right.value,
+                    internal::finalize_value(right.value,options.abs_tolerance),
                     LimitStatus::Converged,
                     std::max(left.iterations, right.iterations)
                 };

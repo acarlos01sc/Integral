@@ -2,6 +2,7 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
+#include "internal/numeric_utils.h"
 
 #include "limit_forward.h"
 
@@ -129,7 +130,7 @@ LimitResult limit_forward(
                                   options.abs_tolerance,
                                   options.rel_tolerance)) {
 
-                        result.value = accel;
+                        result.value = finalize_value(accel,options.abs_tolerance);
                         result.status = LimitStatus::Converged;
                         result.iterations = k;
                         return result;
@@ -147,7 +148,7 @@ LimitResult limit_forward(
     // Fallback
     // --------------------------------------------------------
     if (!seq.empty()) {
-        result.value = seq.back();
+        result.value = finalize_value(seq.back(),options.abs_tolerance);
         result.status = LimitStatus::MaxIterationsReached;
         result.iterations = options.max_iterations;
         return result;
