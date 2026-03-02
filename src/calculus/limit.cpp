@@ -44,7 +44,7 @@ LimitResult dispatch_limit(Func&& f, double point, const LimitOptions& options,
                 // ignore
             }
 
-            // Fallback 
+            // Fallback
             return internal::limit_forward(f, point, options, false, false);
         }
     }
@@ -133,9 +133,10 @@ LimitResult limit(const std::string& expression, const std::string& variable,
         LimitOptions right_options = options;
         right_options.side = LimitSide::Right;
 
-        auto left = dispatch_limit(f, point, left_options, false, false);
+        LimitResult left = dispatch_limit(f, point, left_options, false, false);
 
-        auto right = dispatch_limit(f, point, right_options, false, false);
+        LimitResult right =
+            dispatch_limit(f, point, right_options, false, false);
 
         if (left.status == LimitStatus::Converged &&
             right.status == LimitStatus::Converged) {
@@ -154,6 +155,18 @@ LimitResult limit(const std::string& expression, const std::string& variable,
             return {std::numeric_limits<double>::quiet_NaN(),
                     LimitStatus::Undefined,
                     std::max(left.iterations, right.iterations)};
+        }
+
+        // --------------------------------------------------------
+        // Bilateral infinite divergence handling
+        // --------------------------------------------------------
+        if (left.status == LimitStatus::Divergent &&
+            right.status == LimitStatus::Divergent) {
+            if (std::isinf(left.value) && std::isinf(right.value) &&
+                (std::signbit(left.value) == std::signbit(right.value))) {
+                return {left.value, LimitStatus::Divergent,
+                        std::max(left.iterations, right.iterations)};
+            }
         }
 
         return {std::numeric_limits<double>::quiet_NaN(),
