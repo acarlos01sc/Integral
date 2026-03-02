@@ -18,56 +18,62 @@ namespace {
 // ------------------------------------------------------------
 // Parse limit value (finite or infinite)
 // ------------------------------------------------------------
-bool is_infinite(double x) {
-    return !std::isfinite(x);
-}
+bool is_infinite(double x) { return !std::isfinite(x); }
 
 // ------------------------------------------------------------
 // Dispatch limit method
 // ------------------------------------------------------------
 template <typename Func>
-LimitResult dispatch_limit(Func&& f,
-                           double point,
-                           const LimitOptions& options,
-                           bool infinite,
-                           bool negative_infinite) {
-
+LimitResult dispatch_limit(Func&& f, double point, const LimitOptions& options,
+                           bool infinite, bool negative_infinite) {
     LimitMethod method = options.method;
 
     if (method == LimitMethod::Auto) {
-        method = infinite ? LimitMethod::Forward
-                          : LimitMethod::Richardson;
+        if (infinite) {
+            method = LimitMethod::Forward;
+        } else {
+            // Richardson
+            try {
+                auto r = internal::limit_richardson(f, point, options);
+
+                if (r.status == LimitStatus::Converged) {
+                    return r;
+                }
+
+            } catch (...) {
+                // ignore
+            }
+
+            // Fallback 
+            return internal::limit_forward(f, point, options, false, false);
+        }
     }
 
     switch (method) {
         case LimitMethod::Forward:
-            return internal::limit_forward(
-                f, point, options, infinite, negative_infinite);
+            return internal::limit_forward(f, point, options, infinite,
+                                           negative_infinite);
 
         case LimitMethod::Richardson:
             if (infinite) {
                 throw std::runtime_error(
                     "Richardson method not supported for infinite limits");
             }
-            return internal::limit_richardson(
-                f, point, options);
+            return internal::limit_richardson(f, point, options);
 
         default:
             throw std::runtime_error("Limit method not implemented");
     }
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 // ----------------------------------------------------------------------
 // Public limit()
 // ----------------------------------------------------------------------
 
-LimitResult limit(const std::string& expression,
-                  const std::string& variable,
-                  const std::string& value,
-                  const LimitOptions& options) {
-
+LimitResult limit(const std::string& expression, const std::string& variable,
+                  const std::string& value, const LimitOptions& options) {
     if (options.abs_tolerance <= 0.0) {
         throw std::invalid_argument("abs_tolerance must be positive");
     }
@@ -99,8 +105,7 @@ LimitResult limit(const std::string& expression,
     double point = Evaluator::evaluate(*valueExpr, empty);
 
     bool infinite = is_infinite(point);
-    bool negative_infinite =
-        infinite && std::signbit(point);
+    bool negative_infinite = infinite && std::signbit(point);
 
     // ------------------------------------------------------------
     // Build numerical function f(x)
@@ -122,54 +127,44 @@ LimitResult limit(const std::string& expression,
     // Bilateral case
     // ------------------------------------------------------------
     if (options.side == LimitSide::Both && !infinite) {
-
         LimitOptions left_options = options;
         left_options.side = LimitSide::Left;
 
         LimitOptions right_options = options;
         right_options.side = LimitSide::Right;
 
-        auto left = dispatch_limit(
-            f, point, left_options, false, false);
+        auto left = dispatch_limit(f, point, left_options, false, false);
 
-        auto right = dispatch_limit(
-            f, point, right_options, false, false);
+        auto right = dispatch_limit(f, point, right_options, false, false);
 
         if (left.status == LimitStatus::Converged &&
             right.status == LimitStatus::Converged) {
-
             double diff = std::abs(left.value - right.value);
-            double tol = std::max(
-                options.abs_tolerance,
-                options.rel_tolerance * std::abs(right.value));
+            double tol =
+                std::max(options.abs_tolerance,
+                         options.rel_tolerance * std::abs(right.value));
 
             if (diff < tol) {
-                return {
-                    internal::finalize_value(right.value,options.abs_tolerance),
-                    LimitStatus::Converged,
-                    std::max(left.iterations, right.iterations)
-                };
+                return {internal::finalize_value(right.value,
+                                                 options.abs_tolerance),
+                        LimitStatus::Converged,
+                        std::max(left.iterations, right.iterations)};
             }
 
-            return {
-                std::numeric_limits<double>::quiet_NaN(),
-                LimitStatus::Undefined,
-                std::max(left.iterations, right.iterations)
-            };
+            return {std::numeric_limits<double>::quiet_NaN(),
+                    LimitStatus::Undefined,
+                    std::max(left.iterations, right.iterations)};
         }
 
-        return {
-            std::numeric_limits<double>::quiet_NaN(),
-            LimitStatus::Undefined,
-            std::max(left.iterations, right.iterations)
-        };
+        return {std::numeric_limits<double>::quiet_NaN(),
+                LimitStatus::Undefined,
+                std::max(left.iterations, right.iterations)};
     }
 
     // ------------------------------------------------------------
     // Single-sided or infinite case
     // ------------------------------------------------------------
-    return dispatch_limit(
-        f, point, options, infinite, negative_infinite);
+    return dispatch_limit(f, point, options, infinite, negative_infinite);
 }
 
-} // namespace numathap
+}  // namespace numathap

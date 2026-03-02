@@ -1,5 +1,5 @@
 #include <numathap/integrator.h>
-#include <numathap/limit.h>           // include do limit
+#include <numathap/limit.h>  // include do limit
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -38,6 +38,13 @@ Numerical calculus and integration library.
         .value("Richardson", numathap::LimitMethod::Richardson)
         .export_values();
 
+    py::enum_<numathap::LimitStatus>(m, "LimitStatus")
+        .value("Converged", numathap::LimitStatus::Converged)
+        .value("Divergent", numathap::LimitStatus::Divergent)
+        .value("Undefined", numathap::LimitStatus::Undefined)
+        .value("MaxIterationsReached",
+               numathap::LimitStatus::MaxIterationsReached)
+        .export_values();
     // -----------------------------
     // Python-friendly integrate()
     // -----------------------------
@@ -70,13 +77,9 @@ Integrate a scalar function of one variable.
     m.def(
         "limit",
         [](const std::string& expression, const std::string& variable,
-           const std::string& value,
-           numathap::LimitSide side,
-           numathap::LimitMethod method,
-           double abs_tol,
-           double rel_tol,
+           const std::string& value, numathap::LimitSide side,
+           numathap::LimitMethod method, double abs_tol, double rel_tol,
            int max_iterations) {
-
             numathap::LimitOptions options;
             options.side = side;
             options.method = method;
@@ -84,20 +87,20 @@ Integrate a scalar function of one variable.
             options.rel_tolerance = rel_tol;
             options.max_iterations = max_iterations;
 
-            numathap::LimitResult res = numathap::limit(expression, variable, value, options);
+            numathap::LimitResult res =
+                numathap::limit(expression, variable, value, options);
 
             // Retorna um dict Python-friendly
             py::dict pyres;
             pyres["value"] = res.value;
-            pyres["status"] = static_cast<int>(res.status); // enum como int
+            pyres["status"] = res.status;  // enum como int
             pyres["iterations"] = res.iterations;
             return pyres;
         },
         py::arg("expression"), py::arg("variable"), py::arg("value"),
         py::arg("side") = numathap::LimitSide::Both,
         py::arg("method") = numathap::LimitMethod::Auto,
-        py::arg("abs_tol") = 1e-8,
-        py::arg("rel_tol") = 1e-8,
+        py::arg("abs_tol") = 1e-8, py::arg("rel_tol") = 1e-8,
         py::arg("max_iterations") = 30,
         R"pbdoc(
 Compute the limit of a function as a variable approaches a value.
