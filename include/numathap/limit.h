@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <limits>
 #include <string>
 
 namespace numathap {
@@ -24,19 +26,27 @@ enum class LimitMethod {
 
 /**
  * @brief Configuration options for limit computation.
+ *
+ * Default tolerances are derived from machine precision:
+ *
+ *   abs_tol ≈ sqrt(epsilon)
+ *   rel_tol ≈ sqrt(epsilon)
+ *
+ * This is preferred over epsilon itself because most numerical
+ * limit algorithms accumulate floating-point error.
  */
 struct LimitOptions {
     /// Direction of approach
     LimitSide side = LimitSide::Both;
 
     /// Absolute tolerance for convergence
-    double abs_tolerance = 1e-8;
+    double abs_tolerance = std::sqrt(std::numeric_limits<double>::epsilon());
 
     /// Relative tolerance for convergence
-    double rel_tolerance = 1e-8;
+    double rel_tolerance = std::sqrt(std::numeric_limits<double>::epsilon());
 
     /// Maximum number of refinement iterations
-    int max_iterations = 30;
+    int max_iterations = 2 * std::numeric_limits<double>::digits10;
 
     /// Numerical method to use
     LimitMethod method = LimitMethod::Auto;
@@ -47,7 +57,8 @@ enum class LimitStatus {
     Divergent,
     Oscillatory,
     Undefined,
-    MaxIterationsReached
+    MaxIterationsReached,
+    NumericalFailure
 };
 
 /**

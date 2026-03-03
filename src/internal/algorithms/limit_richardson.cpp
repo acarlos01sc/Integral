@@ -58,7 +58,7 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
         // NaN / Inf check
         if (std::isnan(current)) {
             result.value = std::numeric_limits<double>::quiet_NaN();
-            result.status = LimitStatus::Undefined;
+            result.status = LimitStatus::NumericalFailure;
             result.iterations = k;
             return result;
         }

@@ -100,6 +100,11 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
 
         double fx = f(x);
 
+        if (std::isnan(fx)) {
+            return {std::numeric_limits<double>::quiet_NaN(),
+                    LimitStatus::NumericalFailure, k};
+        }
+
         if (!std::isfinite(fx)) {
             if (positive_count > 3)
                 return {std::numeric_limits<double>::infinity(),
