@@ -101,14 +101,13 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
         double fx = f(x);
 
         if (!std::isfinite(fx)) {
-
             if (positive_count > 3)
-                return { std::numeric_limits<double>::infinity(),
-                         LimitStatus::Divergent, k };
+                return {std::numeric_limits<double>::infinity(),
+                        LimitStatus::Divergent, k};
 
             if (negative_count > 3)
-                return { -std::numeric_limits<double>::infinity(),
-                         LimitStatus::Divergent, k };
+                return {-std::numeric_limits<double>::infinity(),
+                        LimitStatus::Divergent, k};
 
             h *= 0.5;
             continue;
@@ -119,21 +118,37 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
         double current_abs = std::abs(fx);
 
         // --------------------------------------------------------
+        // Envelope-based zero detection (robust oscillatory case)
+        // --------------------------------------------------------
+        if (!infinite) {
+            double distance = std::abs(x - point);
+
+            if (distance < std::sqrt(options.abs_tolerance) &&
+                current_abs < options.abs_tolerance * 10) {
+                result.value = 0.0;
+                result.status = LimitStatus::Converged;
+                result.iterations = k;
+                return result;
+            }
+        }
+
+        // --------------------------------------------------------
         // Asymptotic growth detection
         // --------------------------------------------------------
         if (!first_value) {
-
             if (previous_abs > 0.0) {
                 double ratio = current_abs / previous_abs;
 
-                if (ratio > 1.0 + options.rel_tolerance)
+                // Detect real divergence only if magnitude is exploding
+                if (ratio > 1.0 + options.rel_tolerance &&
+                    current_abs > previous_abs && current_abs > 1.0) {
                     growth_streak++;
-                else
+                } else {
                     growth_streak = 0;
+                }
             }
 
-            if (fx * previous_fx < 0.0)
-                sign_changes++;
+            if (fx * previous_fx < 0.0) sign_changes++;
         }
 
         if (fx > 0.0) positive_count++;
@@ -147,7 +162,6 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
         // Divergence classification
         // --------------------------------------------------------
         if (growth_streak >= 5) {
-
             if (positive_count == static_cast<int>(seq.size())) {
                 result.value = std::numeric_limits<double>::infinity();
                 result.status = LimitStatus::Divergent;
@@ -163,6 +177,14 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
             }
 
             if (sign_changes > 2) {
+                // NEW: check envelope decay
+                if (current_abs < options.abs_tolerance * 10) {
+                    result.value = 0.0;
+                    result.status = LimitStatus::Converged;
+                    result.iterations = k;
+                    return result;
+                }
+
                 result.value = std::numeric_limits<double>::quiet_NaN();
                 result.status = LimitStatus::Undefined;
                 result.iterations = k;
