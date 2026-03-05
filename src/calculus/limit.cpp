@@ -6,6 +6,7 @@
 
 #include "internal/algorithms/limit_forward.h"
 #include "internal/algorithms/limit_richardson.h"
+#include "internal/ast.h"
 #include "internal/evaluator.h"
 #include "internal/lexer.h"
 #include "internal/numeric_utils.h"
@@ -19,6 +20,86 @@ namespace {
 // Parse limit value (finite or infinite)
 // ------------------------------------------------------------
 bool is_infinite(double x) { return !std::isfinite(x); }
+
+// ============================================================
+// Structural polynomial degree detection (COMPATÍVEL COM ast.h)
+// ============================================================
+
+constexpr int INVALID_DEGREE = std::numeric_limits<int>::min();
+
+int detect_degree(const ast::Expr* node, const std::string& var) {
+    using namespace ast;
+
+    if (!node) return INVALID_DEGREE;
+
+    // --------------------------------------------------------
+    // Number
+    // --------------------------------------------------------
+    if (dynamic_cast<const NumberExpr*>(node)) return 0;
+
+    // --------------------------------------------------------
+    // Variable
+    // --------------------------------------------------------
+    if (auto v = dynamic_cast<const VariableExpr*>(node)) {
+        return (v->name == var) ? 1 : -1;
+    }
+
+    // --------------------------------------------------------
+    // Unary
+    // --------------------------------------------------------
+    if (auto u = dynamic_cast<const UnaryExpr*>(node)) {
+        int d = detect_degree(u->operand.get(), var);
+        if (d == INVALID_DEGREE) return INVALID_DEGREE;
+
+        // +x ou -x não altera grau
+        if (u->op == UnaryOp::Plus || u->op == UnaryOp::Minus) return d;
+
+        // |x| → não tratamos estruturalmente
+        if (u->op == UnaryOp::Abs) return INVALID_DEGREE;
+    }
+
+    // --------------------------------------------------------
+    // Binary
+    // --------------------------------------------------------
+    if (auto b = dynamic_cast<const BinaryExpr*>(node)) {
+        int d1 = detect_degree(b->left.get(), var);
+        int d2 = detect_degree(b->right.get(), var);
+
+        if (d1 == INVALID_DEGREE || d2 == INVALID_DEGREE) return INVALID_DEGREE;
+
+        switch (b->op) {
+            case BinaryOp::Add:
+            case BinaryOp::Sub:
+                return std::max(d1, d2);
+
+            case BinaryOp::Mul:
+                return d1 + d2;
+
+            case BinaryOp::Div:
+                return d1 - d2;
+
+            case BinaryOp::Pow:
+                // só tratamos x^n com n inteiro
+                if (auto rightNum =
+                        dynamic_cast<const NumberExpr*>(b->right.get())) {
+                    double exp = rightNum->value;
+
+                    if (std::floor(exp) == exp) {
+                        return d1 * static_cast<int>(exp);
+                    }
+                }
+                return INVALID_DEGREE;
+        }
+    }
+
+    // --------------------------------------------------------
+    // CallExpr (sin, cos, exp, etc)
+    // Não é polinomial
+    // --------------------------------------------------------
+    if (dynamic_cast<const CallExpr*>(node)) return INVALID_DEGREE;
+
+    return INVALID_DEGREE;
+}
 
 // ------------------------------------------------------------
 // Dispatch limit method
@@ -116,12 +197,53 @@ LimitResult limit(const std::string& expression, const std::string& variable,
         ctx[variable] = x;
         double val = Evaluator::evaluate(*expr, ctx);
 
-        if (!std::isfinite(val)) {
+        if (std::isnan(val)) {
             return std::numeric_limits<double>::quiet_NaN();
+        }
+
+        if (std::isinf(val)) {
+            return val;
         }
 
         return val;
     };
+
+    // ============================================================
+    // Structural handling for infinite limits
+    // ============================================================
+    if (infinite) {
+        int degree = detect_degree(expr.get(), variable);
+
+        if (degree != INVALID_DEGREE) {
+            // grau < 0 → 0
+            if (degree < 0) return {0.0, LimitStatus::Converged, 0};
+
+            // grau == 0 → constante
+            if (degree == 0) {
+                Evaluator::Context tmp;
+                double scale =
+                    std::sqrt(std::numeric_limits<double>::max()) * 1e-3;
+
+                tmp[variable] = negative_infinite ? -scale : scale;
+
+                double val = Evaluator::evaluate(*expr, tmp);
+
+                return {internal::finalize_value(val, options.abs_tolerance),
+                        LimitStatus::Converged, 0};
+            }
+
+            // grau > 0 → divergente
+            double sign = 1.0;
+
+            if (negative_infinite && (degree % 2 != 0)) sign = -1.0;
+
+            return {sign * std::numeric_limits<double>::infinity(),
+                    LimitStatus::Divergent, 0};
+        }
+
+        // fallback numérico
+        return dispatch_limit(f, point, options, true, negative_infinite);
+    }
 
     // ------------------------------------------------------------
     // Bilateral case
