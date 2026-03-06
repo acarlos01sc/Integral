@@ -6,6 +6,7 @@
 
 #include "internal/algorithms/limit_forward.h"
 #include "internal/algorithms/limit_richardson.h"
+#include "internal/algorithms/limit_polynomial.h"
 #include "internal/ast.h"
 #include "internal/evaluator.h"
 #include "internal/lexer.h"
@@ -19,104 +20,7 @@ namespace {
 // ------------------------------------------------------------
 // Parse limit value (finite or infinite)
 // ------------------------------------------------------------
-bool is_infinite(double x) { return !std::isfinite(x); }
-
-constexpr int INVALID_DEGREE = std::numeric_limits<int>::min();
-
-// ---------------------------------------------------------------------------
-// detect_degree
-// ---------------------------------------------------------------------------
-// Attempts to determine the polynomial degree of an expression with respect
-// to a given variable using structural analysis of the AST.
-//
-// The function supports a restricted class of expressions:
-//
-//   - constants
-//   - variables
-//   - unary +/-
-//   - +, -, *, /
-//   - powers with integer exponent
-//
-// If the expression cannot be safely interpreted as a polynomial structure,
-// the function returns INVALID_DEGREE.
-//
-// This heuristic is used to analytically resolve limits at infinity when
-// possible.
-// ---------------------------------------------------------------------------
-
-int detect_degree(const ast::Expr* node, const std::string& var) {
-    using namespace ast;
-
-    if (!node) return INVALID_DEGREE;
-
-    // --------------------------------------------------------
-    // Number
-    // --------------------------------------------------------
-    if (dynamic_cast<const NumberExpr*>(node)) return 0;
-
-    // --------------------------------------------------------
-    // Variable
-    // --------------------------------------------------------
-    if (auto v = dynamic_cast<const VariableExpr*>(node)) {
-        return (v->name == var) ? 1 : -1;
-    }
-
-    // --------------------------------------------------------
-    // Unary
-    // --------------------------------------------------------
-    if (auto u = dynamic_cast<const UnaryExpr*>(node)) {
-        int d = detect_degree(u->operand.get(), var);
-        if (d == INVALID_DEGREE) return INVALID_DEGREE;
-
-        // +x ou -x não altera grau
-        if (u->op == UnaryOp::Plus || u->op == UnaryOp::Minus) return d;
-
-        // |x| → não tratamos estruturalmente
-        if (u->op == UnaryOp::Abs) return INVALID_DEGREE;
-    }
-
-    // --------------------------------------------------------
-    // Binary
-    // --------------------------------------------------------
-    if (auto b = dynamic_cast<const BinaryExpr*>(node)) {
-        int d1 = detect_degree(b->left.get(), var);
-        int d2 = detect_degree(b->right.get(), var);
-
-        if (d1 == INVALID_DEGREE || d2 == INVALID_DEGREE) return INVALID_DEGREE;
-
-        switch (b->op) {
-            case BinaryOp::Add:
-            case BinaryOp::Sub:
-                return std::max(d1, d2);
-
-            case BinaryOp::Mul:
-                return d1 + d2;
-
-            case BinaryOp::Div:
-                return d1 - d2;
-
-            case BinaryOp::Pow:
-                // só tratamos x^n com n inteiro
-                if (auto rightNum =
-                        dynamic_cast<const NumberExpr*>(b->right.get())) {
-                    double exp = rightNum->value;
-
-                    if (std::floor(exp) == exp) {
-                        return d1 * static_cast<int>(exp);
-                    }
-                }
-                return INVALID_DEGREE;
-        }
-    }
-
-    // --------------------------------------------------------
-    // CallExpr (sin, cos, exp, etc)
-    // Not Polinomial
-    // --------------------------------------------------------
-    if (dynamic_cast<const CallExpr*>(node)) return INVALID_DEGREE;
-
-    return INVALID_DEGREE;
-}
+bool is_infinite(double x) { return std::isinf(x); }
 
 // ---------------------------------------------------------------------------
 // dispatch_limit
@@ -264,48 +168,6 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     };
 
     // ---------------------------------------------------------------------------
-    // Structural rational limit at finite point
-    //
-    // Detects limits of rational expressions using leading-term analysis.
-    // This resolves indeterminate forms such as:
-    //
-    //   (4*x^3 - 2*x^2 + x) / (3*x^2 + 2*x)  as x -> 0
-    //
-    // without relying on numerical sampling.
-    // ---------------------------------------------------------------------------
-
-    /*if (!infinite && std::abs(point) > options.abs_tolerance) {
-        if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
-            if (b->op == ast::BinaryOp::Div) {
-                auto num =
-                    internal::extract_leading_term(b->left.get(), variable);
-                auto den =
-                    internal::extract_leading_term(b->right.get(), variable);
-
-                if (num.valid && den.valid && den.coefficient != 0.0) {
-                    double result;
-
-                    if (num.degree > den.degree) {
-                        result = 0.0;
-                    } else if (num.degree < den.degree) {
-                        result = (num.coefficient / den.coefficient > 0)
-                                     ? std::numeric_limits<double>::infinity()
-                                     : -std::numeric_limits<double>::infinity();
-                    } else {
-                        result = num.coefficient / den.coefficient;
-                    }
-
-                    return {
-                        internal::finalize_value(result, options.abs_tolerance),
-                        std::isfinite(result) ? LimitStatus::Converged
-                                              : LimitStatus::Divergent,
-                        0};
-                }
-            }
-        }
-    }
-*/
-    // ---------------------------------------------------------------------------
     // Structural handling for limits at infinity
     //
     // If the expression behaves like a polynomial, we can determine the limit
@@ -346,9 +208,9 @@ LimitResult limit(const std::string& expression, const std::string& variable,
             }
         }
 
-        int degree = detect_degree(expr.get(), variable);
+        int degree = internal::detect_degree(expr.get(), variable);
 
-        if (degree != INVALID_DEGREE) {
+        if (degree != internal::INVALID_DEGREE) {
             // grau < 0 → 0
             if (degree < 0) return {0.0, LimitStatus::Converged, 0};
 

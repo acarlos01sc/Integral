@@ -4,6 +4,8 @@
 
 #include "internal/ast.h"
 
+#include "internal/algorithms/limit_polynomial.h"
+
 namespace numathap::internal {
 
 inline double finalize_value(double x, double tol) {
@@ -16,73 +18,7 @@ inline double finalize_value(double x, double tol) {
     return x;
 }
 
-struct LeadingTerm {
-    double coefficient;
-    int degree;
-    bool valid;
-};
-
 inline LeadingTerm invalid_term() { return {0.0, 0, false}; }
-
-inline LeadingTerm extract_leading_term(const ast::Expr* node,
-                                        const std::string& var) {
-    using namespace ast;
-
-    if (!node) return invalid_term();
-
-    if (auto n = dynamic_cast<const NumberExpr*>(node))
-        return {n->value, 0, true};
-
-    if (auto v = dynamic_cast<const VariableExpr*>(node))
-        return (v->name == var) ? LeadingTerm{1.0, 1, true}
-                                : LeadingTerm{1.0, 0, true};
-
-    if (auto u = dynamic_cast<const UnaryExpr*>(node)) {
-        auto t = extract_leading_term(u->operand.get(), var);
-        if (!t.valid) return invalid_term();
-
-        if (u->op == UnaryOp::Minus) t.coefficient = -t.coefficient;
-
-        return t;
-    }
-
-    if (auto b = dynamic_cast<const BinaryExpr*>(node)) {
-        auto L = extract_leading_term(b->left.get(), var);
-        auto R = extract_leading_term(b->right.get(), var);
-
-        if (!L.valid || !R.valid) return invalid_term();
-
-        switch (b->op) {
-            case BinaryOp::Add:
-                return (L.degree >= R.degree) ? L : R;
-
-            case BinaryOp::Sub:
-                return (L.degree >= R.degree)
-                           ? L
-                           : LeadingTerm{-R.coefficient, R.degree, true};
-
-            case BinaryOp::Mul:
-                return {L.coefficient * R.coefficient, L.degree + R.degree,
-                        true};
-
-            case BinaryOp::Div:
-                return {L.coefficient / R.coefficient, L.degree - R.degree,
-                        true};
-
-            case BinaryOp::Pow:
-                if (auto n = dynamic_cast<const NumberExpr*>(b->right.get())) {
-                    double exp = n->value;
-                    if (std::floor(exp) == exp) {
-                        int e = static_cast<int>(exp);
-                        return {std::pow(L.coefficient, e), L.degree * e, true};
-                    }
-                }
-                return invalid_term();
-        }
-    }
-
-    return invalid_term();
-}
 
 inline bool try_rational_zero_limit(const ast::Expr* numerator,
                                     const ast::Expr* denominator,
