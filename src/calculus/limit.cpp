@@ -21,11 +21,28 @@ namespace {
 // ------------------------------------------------------------
 bool is_infinite(double x) { return !std::isfinite(x); }
 
-// ============================================================
-// Structural polynomial degree detection (COMPATÍVEL COM ast.h)
-// ============================================================
-
 constexpr int INVALID_DEGREE = std::numeric_limits<int>::min();
+
+// ---------------------------------------------------------------------------
+// detect_degree
+// ---------------------------------------------------------------------------
+// Attempts to determine the polynomial degree of an expression with respect
+// to a given variable using structural analysis of the AST.
+//
+// The function supports a restricted class of expressions:
+//
+//   - constants
+//   - variables
+//   - unary +/-
+//   - +, -, *, /
+//   - powers with integer exponent
+//
+// If the expression cannot be safely interpreted as a polynomial structure,
+// the function returns INVALID_DEGREE.
+//
+// This heuristic is used to analytically resolve limits at infinity when
+// possible.
+// ---------------------------------------------------------------------------
 
 int detect_degree(const ast::Expr* node, const std::string& var) {
     using namespace ast;
@@ -94,16 +111,27 @@ int detect_degree(const ast::Expr* node, const std::string& var) {
 
     // --------------------------------------------------------
     // CallExpr (sin, cos, exp, etc)
-    // Não é polinomial
+    // Not Polinomial
     // --------------------------------------------------------
     if (dynamic_cast<const CallExpr*>(node)) return INVALID_DEGREE;
 
     return INVALID_DEGREE;
 }
 
-// ------------------------------------------------------------
-// Dispatch limit method
-// ------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// dispatch_limit
+// ---------------------------------------------------------------------------
+// Selects and executes the appropriate numerical limit algorithm.
+//
+// If LimitMethod::Auto is selected:
+//
+//   - Infinite limits use the Forward method
+//   - Finite limits attempt Richardson extrapolation first
+//   - If Richardson fails, the algorithm falls back to Forward sampling
+//
+// This strategy improves robustness for difficult functions.
+// ---------------------------------------------------------------------------
+
 template <typename Func>
 LimitResult dispatch_limit(Func&& f, double point, const LimitOptions& options,
                            bool infinite, bool negative_infinite) {
@@ -149,9 +177,36 @@ LimitResult dispatch_limit(Func&& f, double point, const LimitOptions& options,
 
 }  // anonymous namespace
 
-// ----------------------------------------------------------------------
-// Public limit()
-// ----------------------------------------------------------------------
+// ============================================================================
+// limit()
+// ----------------------------------------------------------------------------
+// Computes the limit of a mathematical expression.
+//
+// The function follows a hybrid strategy:
+//
+// 1. The expression is parsed into an AST.
+// 2. For limits at infinity, a structural analysis attempts to detect the
+//    polynomial degree of the expression.
+// 3. If structural analysis succeeds, the limit may be resolved analytically.
+// 4. Otherwise, a numerical limit algorithm is applied.
+//
+// Numerical methods currently supported:
+//
+//   - Forward sampling
+//   - Richardson extrapolation
+//
+// Bilateral limits are computed by evaluating the left and right limits
+// independently and comparing them within the requested tolerances.
+//
+// Parameters:
+//   expression  : mathematical expression
+//   variable    : variable with respect to which the limit is taken
+//   value       : limit point (finite or infinite)
+//   options     : numerical options controlling the algorithm
+//
+// Returns:
+//   LimitResult structure containing value, status, and iteration count.
+// ============================================================================
 
 LimitResult limit(const std::string& expression, const std::string& variable,
                   const std::string& value, const LimitOptions& options) {
@@ -188,9 +243,9 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     bool infinite = is_infinite(point);
     bool negative_infinite = infinite && std::signbit(point);
 
-    // ------------------------------------------------------------
-    // Build numerical function f(x)
-    // ------------------------------------------------------------
+    // Build numerical function f(x) that evaluates the parsed AST.
+    // The evaluator context is reused across calls to avoid allocations.
+
     Evaluator::Context ctx;
 
     auto f = [&](double x) -> double {
@@ -208,10 +263,89 @@ LimitResult limit(const std::string& expression, const std::string& variable,
         return val;
     };
 
-    // ============================================================
-    // Structural handling for infinite limits
-    // ============================================================
+    // ---------------------------------------------------------------------------
+    // Structural rational limit at finite point
+    //
+    // Detects limits of rational expressions using leading-term analysis.
+    // This resolves indeterminate forms such as:
+    //
+    //   (4*x^3 - 2*x^2 + x) / (3*x^2 + 2*x)  as x -> 0
+    //
+    // without relying on numerical sampling.
+    // ---------------------------------------------------------------------------
+
+    /*if (!infinite && std::abs(point) > options.abs_tolerance) {
+        if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
+            if (b->op == ast::BinaryOp::Div) {
+                auto num =
+                    internal::extract_leading_term(b->left.get(), variable);
+                auto den =
+                    internal::extract_leading_term(b->right.get(), variable);
+
+                if (num.valid && den.valid && den.coefficient != 0.0) {
+                    double result;
+
+                    if (num.degree > den.degree) {
+                        result = 0.0;
+                    } else if (num.degree < den.degree) {
+                        result = (num.coefficient / den.coefficient > 0)
+                                     ? std::numeric_limits<double>::infinity()
+                                     : -std::numeric_limits<double>::infinity();
+                    } else {
+                        result = num.coefficient / den.coefficient;
+                    }
+
+                    return {
+                        internal::finalize_value(result, options.abs_tolerance),
+                        std::isfinite(result) ? LimitStatus::Converged
+                                              : LimitStatus::Divergent,
+                        0};
+                }
+            }
+        }
+    }
+*/
+    // ---------------------------------------------------------------------------
+    // Structural handling for limits at infinity
+    //
+    // If the expression behaves like a polynomial, we can determine the limit
+    // analytically using its detected degree:
+    //
+    //   degree < 0  →  limit = 0
+    //   degree = 0  →  constant asymptotic value
+    //   degree > 0  →  divergent limit
+    //
+    // If degree detection fails, the algorithm falls back to numerical methods.
+    // ---------------------------------------------------------------------------
+
     if (infinite) {
+        if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
+            if (b->op == ast::BinaryOp::Div) {
+                auto num =
+                    internal::extract_leading_term(b->left.get(), variable);
+                auto den =
+                    internal::extract_leading_term(b->right.get(), variable);
+
+                if (num.valid && den.valid) {
+                    if (num.degree < den.degree)
+                        return {0.0, LimitStatus::Converged, 0};
+
+                    if (num.degree == den.degree)
+                        return {num.coefficient / den.coefficient,
+                                LimitStatus::Converged, 0};
+
+                    double sign =
+                        (num.coefficient / den.coefficient) > 0 ? 1.0 : -1.0;
+
+                    if (negative_infinite && ((num.degree - den.degree) % 2))
+                        sign = -sign;
+
+                    return {sign * std::numeric_limits<double>::infinity(),
+                            LimitStatus::Divergent, 0};
+                }
+            }
+        }
+
         int degree = detect_degree(expr.get(), variable);
 
         if (degree != INVALID_DEGREE) {
@@ -245,9 +379,58 @@ LimitResult limit(const std::string& expression, const std::string& variable,
         return dispatch_limit(f, point, options, true, negative_infinite);
     }
 
-    // ------------------------------------------------------------
-    // Bilateral case
-    // ------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Structural rational limit near zero
+    //
+    // Detects limits of rational expressions by comparing the lowest-degree
+    // terms of numerator and denominator.
+    //
+    // Example:
+    //
+    // (4*x^3-2*x^2+x)/(3*x^2+2*x)  as x -> 0  →  1/2
+    // ---------------------------------------------------------------------------
+
+    if (!infinite && std::abs(point) < options.abs_tolerance) {
+        if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
+            if (b->op == ast::BinaryOp::Div) {
+                auto num =
+                    internal::extract_lowest_term(b->left.get(), variable);
+                auto den =
+                    internal::extract_lowest_term(b->right.get(), variable);
+
+                if (num.valid && den.valid && den.coefficient != 0.0) {
+                    double result;
+
+                    if (num.degree > den.degree)
+                        result = 0.0;
+                    else if (num.degree < den.degree)
+                        result = (num.coefficient / den.coefficient > 0)
+                                     ? std::numeric_limits<double>::infinity()
+                                     : -std::numeric_limits<double>::infinity();
+                    else
+                        result = num.coefficient / den.coefficient;
+
+                    return {
+                        internal::finalize_value(result, options.abs_tolerance),
+                        std::isfinite(result) ? LimitStatus::Converged
+                                              : LimitStatus::Divergent,
+                        0};
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Bilateral limit computation
+    //
+    // The left and right limits are computed independently and compared using
+    // absolute and relative tolerances. If both sides converge to the same
+    // value within tolerance, the bilateral limit is accepted.
+    //
+    // If both sides diverge to infinities with the same sign, the result is
+    // considered a divergent limit.
+    // ---------------------------------------------------------------------------
+
     if (options.side == LimitSide::Both && !infinite) {
         LimitOptions left_options = options;
         left_options.side = LimitSide::Left;
