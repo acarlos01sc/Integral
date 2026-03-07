@@ -1,8 +1,6 @@
 #pragma once
 
-#include <stdexcept>
 #include <string>
-#include <functional>
 #include <unordered_map>
 
 #include "ast.h"

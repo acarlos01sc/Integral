@@ -5,8 +5,9 @@
 #include <stdexcept>
 
 #include "internal/algorithms/limit_forward.h"
-#include "internal/algorithms/limit_richardson.h"
 #include "internal/algorithms/limit_polynomial.h"
+#include "internal/algorithms/limit_richardson.h"
+#include "internal/algorithms/limit_sqrt_minus_const.h"
 #include "internal/ast.h"
 #include "internal/evaluator.h"
 #include "internal/lexer.h"
@@ -132,6 +133,13 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     Lexer exprLexer(expression);
     Parser exprParser(exprLexer);
     auto expr = exprParser.parse();
+
+    // ------------------------------------------------------------
+    // sqrt(expr) - constant heuristic
+    // ------------------------------------------------------------
+    if (auto rewritten = internal::transform_sqrt_minus_const(expr.get())) {
+        return limit(*rewritten, variable, value, options);
+    }
 
     // ------------------------------------------------------------
     // Parse limit value

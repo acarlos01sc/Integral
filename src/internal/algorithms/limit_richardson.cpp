@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
 #include "internal/numeric_utils.h"
 
 namespace numathap::internal {
@@ -24,6 +25,12 @@ inline bool converged(double prev, double current, double abs_tol,
 // ------------------------------------------------------------
 constexpr double LARGE_THRESHOLD = 1e12;
 
+// Machine precision constants for numerical robustness
+constexpr double EPS = std::numeric_limits<double>::epsilon();
+const double SQRT_EPS = std::sqrt(EPS);
+constexpr double TINY = std::numeric_limits<double>::min();
+// ------------------------------------------------------------
+
 }  // anonymous namespace
 
 // ----------------------------------------------------------------------
@@ -36,8 +43,9 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
     double current = 0.0;
 
     for (int k = 1; k <= options.max_iterations; ++k) {
-        double h = std::pow(0.5, k);
-
+        static const double SHRINK = 1.0 / std::sqrt(2.0);
+        double h = std::pow(SHRINK, k);
+        
         double x1, x2;
 
         // Determine single-sided or bilateral
@@ -51,6 +59,33 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
 
         double f1 = f(x1);
         double f2 = f(x2);
+
+        // Reject non-finite evaluations early
+        if (!std::isfinite(f1) || !std::isfinite(f2)) {
+            result.value = std::numeric_limits<double>::quiet_NaN();
+            result.status = LimitStatus::NumericalFailure;
+            result.iterations = k;
+            return result;
+        }
+
+        // Detect catastrophic cancellation or numerical noise
+        double scale = std::max({1.0, std::abs(f1), std::abs(f2)});
+
+        if (std::abs(f1) < SQRT_EPS * scale &&
+            std::abs(f2) < SQRT_EPS * scale) {
+            result.value = finalize_value(f2, options.abs_tolerance);
+            result.status = LimitStatus::Converged;
+            result.iterations = k;
+            return result;
+        }
+
+        // Detect underflow region
+        if (std::abs(f1) < TINY && std::abs(f2) < TINY) {
+            result.value = 0.0;
+            result.status = LimitStatus::Converged;
+            result.iterations = k;
+            return result;
+        }
 
         // Richardson extrapolation (order 1)
         current = 2.0 * f2 - f1;
@@ -74,7 +109,7 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
             // Convergence check
             if (converged(prev, current, options.abs_tolerance,
                           options.rel_tolerance)) {
-                result.value = finalize_value(current,options.abs_tolerance);
+                result.value = finalize_value(current, options.abs_tolerance);
                 result.status = LimitStatus::Converged;
                 result.iterations = k;
                 return result;
@@ -93,7 +128,7 @@ LimitResult limit_richardson(const std::function<double(double)>& f,
     }
 
     // Max iterations reached
-    result.value = finalize_value(current,options.abs_tolerance);
+    result.value = finalize_value(current, options.abs_tolerance);
     result.status = LimitStatus::MaxIterationsReached;
     result.iterations = options.max_iterations;
 

@@ -12,6 +12,10 @@ namespace numathap::internal {
 
 namespace {
 
+constexpr double EPS = std::numeric_limits<double>::epsilon();
+const double SQRT_EPS = std::sqrt(EPS);
+constexpr double TINY = std::numeric_limits<double>::min();
+
 // ============================================================
 // Wynn epsilon acceleration
 // ============================================================
@@ -100,12 +104,22 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
 
         double fx = f(x);
 
+        // Reject catastrophic cancellation / numerical noise
+        if (std::isfinite(fx) && std::abs(fx) < SQRT_EPS) {
+            // Treat as numerical zero but keep algorithm stable
+            fx = 0.0;
+        }
+
         if (std::isnan(fx)) {
             return {std::numeric_limits<double>::quiet_NaN(),
                     LimitStatus::NumericalFailure, k};
         }
 
         if (!std::isfinite(fx)) {
+            if (std::abs(fx) < TINY) {
+                fx = 0.0;
+            }
+
             if (positive_count > 3)
                 return {std::numeric_limits<double>::infinity(),
                         LimitStatus::Divergent, k};
@@ -118,7 +132,10 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
             continue;
         }
 
-        seq.push_back(fx);
+        if (std::isfinite(fx))
+            seq.push_back(fx);
+        else
+            continue;
 
         double current_abs = std::abs(fx);
 
@@ -233,7 +250,8 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
             }
         }
 
-        h *= 0.5;
+        static const double SHRINK = 1.0/std::sqrt(2.0);  // 1/sqrt(2)
+        h *= SHRINK;
     }
 
     // --------------------------------------------------------

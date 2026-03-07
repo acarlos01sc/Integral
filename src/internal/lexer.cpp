@@ -10,8 +10,6 @@
 Lexer::Lexer(const std::string &input)
     : input_(input), pos_(0), line_(1), column_(1) {}
 
-// Lexer::~Lexer() {}
-
 char Lexer::peek() const {
     // TODO: Return character at current position without advancing
     if (pos_ >= input_.size()) return '\0';
