@@ -149,8 +149,7 @@ LimitResult limit(const std::string& expression, const std::string& variable,
             }
             // degree > 0: cannot be sure, fallback
         }
-
-        return dispatch_limit(f, point, options, true, negative_infinite);
+       //return dispatch_limit(f, point, options, true, negative_infinite);
     }
 
     // ---------------------------------------------------------------------------
