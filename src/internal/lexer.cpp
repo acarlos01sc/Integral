@@ -106,9 +106,12 @@ Token Lexer::next() {
         case ')':
             return Token{TokenType::RParen, ")", start_line, start_column};
         case '|':
-            return Token{TokenType::Pipe,"|",start_line,start_column};
+            return Token{TokenType::Pipe, "|", start_line, start_column};
+        case ',':
+            return Token{TokenType::Comma, ",", start_line, start_column};
         default:
-            return Token{TokenType::Invalid,std::string(1,c),start_line,start_column};
+            return Token{TokenType::Invalid, std::string(1, c), start_line,
+                         start_column};
     }
 
     throw std::runtime_error("Undefined caracter '" + std::string(1, c) +

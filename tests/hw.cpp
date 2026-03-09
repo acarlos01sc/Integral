@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "../src/internal/ast.h"
 #include "../src/internal/lexer.h"
@@ -29,6 +28,8 @@ std::string token_type_to_string(TokenType type) {
             return "LParen";
         case TokenType::RParen:
             return "RParen";
+        case TokenType::Comma:
+            return "Comma";
         case TokenType::EndOfFile:
             return "EndOfFile";
         case TokenType::Invalid:
@@ -95,7 +96,9 @@ inline void printAST(const ast::Expr* expr, int indent = 0) {
     } else if (auto c = dynamic_cast<const ast::CallExpr*>(expr)) {
         pad();
         std::cout << "Call(" << c->callee << ")\n";
-        printAST(c->argument.get(), indent + 1);
+        for (const auto& arg : c->arguments) {
+            printAST(arg.get(), indent + 1);
+        }
     }
 }
 

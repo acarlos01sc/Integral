@@ -15,6 +15,7 @@ enum class TokenType {
     Pipe,
     LParen,
     RParen,
+    Comma,
     EndOfFile,
     Invalid
 };

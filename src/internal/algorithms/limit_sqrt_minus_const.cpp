@@ -48,7 +48,7 @@ std::optional<std::string> transform_sqrt_minus_const(const ast::Expr* expr) {
 
     if (!is_constant(bin->right.get(), constant)) return std::nullopt;
 
-    const ast::Expr* inner = call->argument.get();
+    const ast::Expr* inner = call->arguments[0].get();
 
     std::string inner_str = ast_to_string(inner);
 

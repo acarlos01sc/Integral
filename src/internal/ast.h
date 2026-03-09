@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace ast {
 
@@ -42,10 +43,15 @@ struct BinaryExpr : Expr {
 
 struct CallExpr : Expr {
     std::string callee;
-    std::unique_ptr<Expr> argument;
+    std::vector<std::unique_ptr<Expr>> arguments;
+
+    CallExpr(std::string callee, std::vector<std::unique_ptr<Expr>> arguments)
+        : callee(std::move(callee)), arguments(std::move(arguments)) {}
 
     CallExpr(std::string callee, std::unique_ptr<Expr> argument)
-        : callee(std::move(callee)), argument(std::move(argument)) {}
+        : callee(std::move(callee)) {
+        arguments.push_back(std::move(argument));
+    }
 };
 
 }  // namespace ast

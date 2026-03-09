@@ -3,6 +3,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "ast.h"
 #include "lexer.h"
@@ -119,10 +120,24 @@ std::unique_ptr<ast::Expr> Parser::parseVariable() {
     std::string name = current.lexeme;
     advance();
     if (current.type == TokenType::LParen) {
-        advance();
-        auto arg = expression();
+        advance();  // consume '('
+
+        // CHANGE: vetor de argumentos
+        std::vector<std::unique_ptr<ast::Expr>> args;
+
+        // CHANGE: primeiro argumento
+        args.push_back(expression());
+
+        // CHANGE: argumentos adicionais separados por vírgula
+        while (match(TokenType::Comma)) {
+            args.push_back(expression());
+        }
+
         expect(TokenType::RParen, "Expected ')'");
-        return std::make_unique<ast::CallExpr>(std::move(name), std::move(arg));
+
+        // CHANGE: criar CallExpr com múltiplos argumentos
+        return std::make_unique<ast::CallExpr>(std::move(name),
+                                               std::move(args));
     }
 
     return std::make_unique<ast::VariableExpr>(std::move(name));
@@ -136,32 +151,33 @@ std::unique_ptr<ast::Expr> Parser::parseParenExpr() {
 }
 
 std::unique_ptr<ast::Expr> Parser::parseUnary() {
-    if (current.type==TokenType::Plus||current.type==TokenType::Minus) {
+    if (current.type == TokenType::Plus || current.type == TokenType::Minus) {
         TokenType opToken = current.type;
         advance();
         auto operand = factor();
         return std::make_unique<ast::UnaryExpr>(toUnaryOp(opToken),
-                                            std::move(operand));
+                                                std::move(operand));
     }
 
     return parsePower();
 }
 
 std::unique_ptr<ast::Expr> Parser::parsePower() {
-    auto left=factor();
-    if (current.type==TokenType::Caret) {
+    auto left = factor();
+    if (current.type == TokenType::Caret) {
         advance();
-        auto right=parsePower();
-        return std::make_unique<ast::BinaryExpr>(ast::BinaryOp::Pow,std::move(left),std::move(right));
+        auto right = parsePower();
+        return std::make_unique<ast::BinaryExpr>(
+            ast::BinaryOp::Pow, std::move(left), std::move(right));
     }
     return left;
 }
 
 std::unique_ptr<ast::Expr> Parser::parseAbsolute() {
     advance();
-    auto expr=expression();
+    auto expr = expression();
 
     expect(TokenType::Pipe, "Expected '|' to close absolute value");
 
-    return std::make_unique<ast::UnaryExpr>(ast::UnaryOp::Abs,std::move(expr));
+    return std::make_unique<ast::UnaryExpr>(ast::UnaryOp::Abs, std::move(expr));
 }

@@ -77,17 +77,33 @@ double Evaluator::evalBinary(const ast::BinaryExpr& expr, const Context& ctx) {
 
 double Evaluator::evalCall(const ast::CallExpr& expr, const Context& ctx) {
     static const std::unordered_map<std::string, double (*)(double)> functions{
-        {"sin", std::sin}, {"cos", std::cos}, {"tan", std::tan},
-        {"asin", std::asin}, {"acos", std::acos}, {"atan", std::atan},
-        {"sinh", std::sinh}, {"cosh", std::cosh}, {"tanh", std::tanh},
+        {"sin", std::sin},     {"cos", std::cos},     {"tan", std::tan},
+        {"asin", std::asin},   {"acos", std::acos},   {"atan", std::atan},
+        {"sinh", std::sinh},   {"cosh", std::cosh},   {"tanh", std::tanh},
         {"asinh", std::asinh}, {"acosh", std::acosh}, {"atanh", std::atanh},
-        {"log", std::log}, {"exp", std::exp}, {"sqrt", std::sqrt},
+        {"log", std::log},     {"exp", std::exp},     {"sqrt", std::sqrt},
         {"abs", std::abs},
     };
+
+    if (expr.callee == "pow") {
+        if (expr.arguments.size() != 2)
+            throw std::runtime_error("pow expects 2 arguments");
+
+        double base = evaluate(*expr.arguments[0], ctx);
+        double exponent = evaluate(*expr.arguments[1], ctx);
+
+        return std::pow(base, exponent);
+    }
+
     auto it = functions.find(expr.callee);
     if (it == functions.end())
-        throw std::runtime_error("Unknow function " + expr.callee);
+        throw std::runtime_error("Unknown function " + expr.callee);
 
-    double arg = evaluate(*expr.argument, ctx);
+    if (expr.arguments.size() != 1)
+        throw std::runtime_error(expr.callee + " expects 1 argument");
+
+    double arg = evaluate(*expr.arguments[0], ctx);
+
     return it->second(arg);
+    
 }
