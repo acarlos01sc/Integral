@@ -48,10 +48,6 @@ struct CallExpr : Expr {
     CallExpr(std::string callee, std::vector<std::unique_ptr<Expr>> arguments)
         : callee(std::move(callee)), arguments(std::move(arguments)) {}
 
-    CallExpr(std::string callee, std::unique_ptr<Expr> argument)
-        : callee(std::move(callee)) {
-        arguments.push_back(std::move(argument));
-    }
 };
 
 }  // namespace ast

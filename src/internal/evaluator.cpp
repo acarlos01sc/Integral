@@ -82,7 +82,7 @@ double Evaluator::evalCall(const ast::CallExpr& expr, const Context& ctx) {
         {"sinh", std::sinh},   {"cosh", std::cosh},   {"tanh", std::tanh},
         {"asinh", std::asinh}, {"acosh", std::acosh}, {"atanh", std::atanh},
         {"log", std::log},     {"exp", std::exp},     {"sqrt", std::sqrt},
-        {"abs", std::abs},
+        {"abs", std::fabs},
     };
 
     if (expr.callee == "pow") {

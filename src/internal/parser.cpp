@@ -125,14 +125,13 @@ std::unique_ptr<ast::Expr> Parser::parseVariable() {
         // CHANGE: vetor de argumentos
         std::vector<std::unique_ptr<ast::Expr>> args;
 
-        // CHANGE: primeiro argumento
-        args.push_back(expression());
-
-        // CHANGE: argumentos adicionais separados por vírgula
-        while (match(TokenType::Comma)) {
+        if (current.type != TokenType::RParen) {
             args.push_back(expression());
-        }
 
+            while (match(TokenType::Comma)) {
+                args.push_back(expression());
+            }
+        }
         expect(TokenType::RParen, "Expected ')'");
 
         // CHANGE: criar CallExpr com múltiplos argumentos
