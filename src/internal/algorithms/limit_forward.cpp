@@ -102,6 +102,11 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
                 x = point + h;
         }
 
+        if (!infinite && std::abs(x - point) < TINY) {
+            h *= 0.5;
+            continue;
+        }
+
         double fx = f(x);
 
         // Reject catastrophic cancellation / numerical noise
@@ -111,15 +116,11 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
         }
 
         if (std::isnan(fx)) {
-            return {std::numeric_limits<double>::quiet_NaN(),
-                    LimitStatus::NumericalFailure, k};
+            h *= 0.5;
+            continue;
         }
 
         if (!std::isfinite(fx)) {
-            if (std::abs(fx) < TINY) {
-                fx = 0.0;
-            }
-
             if (positive_count > 3)
                 return {std::numeric_limits<double>::infinity(),
                         LimitStatus::Divergent, k};
@@ -132,10 +133,7 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
             continue;
         }
 
-        if (std::isfinite(fx))
-            seq.push_back(fx);
-        else
-            continue;
+        seq.push_back(fx);
 
         double current_abs = std::abs(fx);
 
@@ -250,7 +248,7 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
             }
         }
 
-        static const double SHRINK = 1.0/std::sqrt(2.0);  // 1/sqrt(2)
+        static const double SHRINK = 1.0 / std::sqrt(2.0);  // 1/sqrt(2)
         h *= SHRINK;
     }
 
