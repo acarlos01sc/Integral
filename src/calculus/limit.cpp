@@ -4,6 +4,7 @@
 #include <limits>
 #include <stdexcept>
 
+#include "internal/algorithms/limit_bounded_product.h"
 #include "internal/algorithms/limit_forward.h"
 #include "internal/algorithms/limit_polynomial.h"
 #include "internal/algorithms/limit_richardson.h"
@@ -43,7 +44,8 @@ LimitResult dispatch_limit(Func&& f, double point, const LimitOptions& options,
             try {
                 auto r = internal::limit_richardson(f, point, options);
                 if (r.status == LimitStatus::Converged) return r;
-            } catch (...) { /* ignore */ }
+            } catch (...) { /* ignore */
+            }
 
             return internal::limit_forward(f, point, options, false, false);
         }
@@ -55,14 +57,15 @@ LimitResult dispatch_limit(Func&& f, double point, const LimitOptions& options,
                                            negative_infinite);
         case LimitMethod::Richardson:
             if (infinite)
-                throw std::runtime_error("Richardson not supported for infinity");
+                throw std::runtime_error(
+                    "Richardson not supported for infinity");
             return internal::limit_richardson(f, point, options);
         default:
             throw std::runtime_error("Limit method not implemented");
     }
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 // ============================================================================
 // limit()
@@ -106,6 +109,14 @@ LimitResult limit(const std::string& expression, const std::string& variable,
 
     bool infinite = is_infinite(point);
     bool negative_infinite = infinite && std::signbit(point);
+    
+    // ------------------------------------------------------------
+    // Heuristic: bounded function times x^p -> 0
+    // ------------------------------------------------------------
+    if (auto r = internal::try_bounded_product(expr.get(), variable, point,
+                                               options)) {
+        return *r;
+    }
 
     // ------------------------------------------------------------
     // Build numerical function f(x) evaluating the AST
@@ -124,10 +135,13 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     if (infinite) {
         if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
             if (b->op == ast::BinaryOp::Div) {
-                auto num = internal::extract_leading_term(b->left.get(), variable);
-                auto den = internal::extract_leading_term(b->right.get(), variable);
+                auto num =
+                    internal::extract_leading_term(b->left.get(), variable);
+                auto den =
+                    internal::extract_leading_term(b->right.get(), variable);
                 if (num.valid && den.valid) {
-                    if (num.degree < den.degree) return {0.0, LimitStatus::Converged, 0};
+                    if (num.degree < den.degree)
+                        return {0.0, LimitStatus::Converged, 0};
                     if (num.degree == den.degree)
                         return {num.coefficient / den.coefficient,
                                 LimitStatus::Converged, 0};
@@ -141,7 +155,8 @@ LimitResult limit(const std::string& expression, const std::string& variable,
             if (degree < 0) return {0.0, LimitStatus::Converged, 0};
             if (degree == 0) {
                 Evaluator::Context tmp;
-                double scale = std::sqrt(std::numeric_limits<double>::max()) * 1e-3;
+                double scale =
+                    std::sqrt(std::numeric_limits<double>::max()) * 1e-3;
                 tmp[variable] = negative_infinite ? -scale : scale;
                 double val = Evaluator::evaluate(*expr, tmp);
                 return {internal::finalize_value(val, options.abs_tolerance),
@@ -149,7 +164,7 @@ LimitResult limit(const std::string& expression, const std::string& variable,
             }
             // degree > 0: cannot be sure, fallback
         }
-       //return dispatch_limit(f, point, options, true, negative_infinite);
+        // return dispatch_limit(f, point, options, true, negative_infinite);
     }
 
     // ---------------------------------------------------------------------------
@@ -158,8 +173,10 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     if (!infinite && std::abs(point) < options.abs_tolerance) {
         if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
             if (b->op == ast::BinaryOp::Div) {
-                auto num = internal::extract_lowest_term(b->left.get(), variable);
-                auto den = internal::extract_lowest_term(b->right.get(), variable);
+                auto num =
+                    internal::extract_lowest_term(b->left.get(), variable);
+                auto den =
+                    internal::extract_lowest_term(b->right.get(), variable);
 
                 if (num.valid && den.valid && den.coefficient != 0.0) {
                     double result;
@@ -173,7 +190,8 @@ LimitResult limit(const std::string& expression, const std::string& variable,
                         result = num.coefficient / den.coefficient;
 
                     if (std::isfinite(result))
-                        return {internal::finalize_value(result, options.abs_tolerance),
+                        return {internal::finalize_value(result,
+                                                         options.abs_tolerance),
                                 LimitStatus::Converged, 0};
                     // Otherwise fallback to numerical
                 }
@@ -191,15 +209,18 @@ LimitResult limit(const std::string& expression, const std::string& variable,
         right_options.side = LimitSide::Right;
 
         LimitResult left = dispatch_limit(f, point, left_options, false, false);
-        LimitResult right = dispatch_limit(f, point, right_options, false, false);
+        LimitResult right =
+            dispatch_limit(f, point, right_options, false, false);
 
         if (left.status == LimitStatus::Converged &&
             right.status == LimitStatus::Converged) {
             double diff = std::abs(left.value - right.value);
-            double tol = std::max(options.abs_tolerance,
-                                  options.rel_tolerance * std::abs(right.value));
+            double tol =
+                std::max(options.abs_tolerance,
+                         options.rel_tolerance * std::abs(right.value));
             if (diff < tol) {
-                return {internal::finalize_value(right.value, options.abs_tolerance),
+                return {internal::finalize_value(right.value,
+                                                 options.abs_tolerance),
                         LimitStatus::Converged,
                         std::max(left.iterations, right.iterations)};
             }
@@ -208,8 +229,8 @@ LimitResult limit(const std::string& expression, const std::string& variable,
                     std::max(left.iterations, right.iterations)};
         }
         if (left.status == LimitStatus::Divergent &&
-            right.status == LimitStatus::Divergent &&
-            std::isinf(left.value) && std::isinf(right.value) &&
+            right.status == LimitStatus::Divergent && std::isinf(left.value) &&
+            std::isinf(right.value) &&
             (std::signbit(left.value) == std::signbit(right.value))) {
             return {left.value, LimitStatus::Divergent,
                     std::max(left.iterations, right.iterations)};
@@ -225,4 +246,4 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     return dispatch_limit(f, point, options, infinite, negative_infinite);
 }
 
-} // namespace numathap
+}  // namespace numathap
