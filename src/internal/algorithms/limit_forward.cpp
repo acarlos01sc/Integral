@@ -91,7 +91,8 @@ LimitResult limit_forward(const std::function<double(double)>& f, double point,
         // --------------------------------------------------------
         if (infinite) {
             double t = (M_PI / 2.0) * (1.0 - h);
-            x = std::tan(t);
+            constexpr double SCALE = 100.0;
+            x = SCALE * std::tan(t);
 
             if (negative_inf) x = -x;
 
