@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "internal/algorithms/limit_bounded_product.h"
+#include "internal/algorithms/limit_exp_one_plus_invx.h"
 #include "internal/algorithms/limit_forward.h"
 #include "internal/algorithms/limit_polynomial.h"
 #include "internal/algorithms/limit_richardson.h"
@@ -109,7 +110,7 @@ LimitResult limit(const std::string& expression, const std::string& variable,
 
     bool infinite = is_infinite(point);
     bool negative_infinite = infinite && std::signbit(point);
-    
+
     // ------------------------------------------------------------
     // Heuristic: bounded function times x^p -> 0
     // ------------------------------------------------------------
@@ -133,6 +134,14 @@ LimitResult limit(const std::string& expression, const std::string& variable,
     // Heuristic: limits at infinity (polynomials)
     // ---------------------------------------------------------------------------
     if (infinite) {
+        // ------------------------------------------------------------
+        // Heuristic: (1 + a/x)^(b*x) type exponential limits
+        // ------------------------------------------------------------
+        if (auto exp_limit = internal::limit_exp_one_plus_invx(
+                expr.get(), variable, infinite, negative_infinite)) {
+            return {*exp_limit, LimitStatus::Converged, 0};
+        }
+        
         if (auto b = dynamic_cast<const ast::BinaryExpr*>(expr.get())) {
             if (b->op == ast::BinaryOp::Div) {
                 auto num =
